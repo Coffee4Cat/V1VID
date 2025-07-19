@@ -30,8 +30,8 @@
   transition: color 0.2s, text-shadow 0.2s;
 }
 .logo_text:hover {
-  color: #ff0088;
-  text-shadow: 0 2px 16px #ff0088, 0 0 4px #fa80b9;
+  color: #fbf16a;
+  text-shadow: 0 2px 16px #fbf16a, 0 0 4px #fa80b9;
 }
 .logo_img {
   width: auto;
@@ -57,5 +57,5 @@
 }
 
 .menu li a:hover {
-  color: #ff0088;
+  color: #fbf16a;
 }

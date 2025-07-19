@@ -1,0 +1,43 @@
+.controlblock {
+  padding: 1rem;
+  font-size: 2vh;
+  min-height: 300px;
+  border-radius: 8px;
+  background-color: #333; /* domyślne tło */
+  color: white;
+  transition: background-color 0.9s ease;
+}
+
+.enabled {
+  color: #23242a;
+  background: linear-gradient(to bottom, #fbf16a, #fa80b9);
+  text-shadow: 0 2px 16px #d3c6d2, 0 0 4px #fa80b9;
+  transition: background 1s ease, color 0.3s ease, text-shadow 0.3s ease;
+}
+
+
+
+/* well... it looks terrible rn */
+.diode {
+  display: inline-block;
+  width: 150px;
+  height: 140px;
+  border-radius: 12px;
+  background: #bdbdbd;
+  border: 2px solid #e1dcdc;
+  transition: background 0.2s;
+}
+
+.button {
+  padding: 0.5em 1.2em;
+  border-radius: 8px;
+  border: none;
+  background: #fbf16a;
+  color: #272728;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.button:hover {
+  background: #fea143;
+}

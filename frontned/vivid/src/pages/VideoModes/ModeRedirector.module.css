@@ -1,0 +1,21 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #23242a;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.10);
+  padding: 1.2rem 2rem;
+  min-width: 180px;
+  min-height: 240px;
+  margin: 0.5rem;
+  font-size: 2.5vh;
+}
+.wrapper:hover {
+  color: #23242a;
+  background: linear-gradient(to bottom, #fbf16a, #fa80b9);
+  text-shadow: 0 2px 16px #d3c6d2, 0 0 4px #fa80b9;
+  transition: background 0.4s ease, color 0.3s ease, text-shadow 0.3s ease;
+}
+
+

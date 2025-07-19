@@ -6,10 +6,10 @@
 .title {
     position: relative;
     font-size: 2.0rem;
-    color: #ff0088;
+    color: rgba(30, 31, 32, 1);
     opacity: 0.5;
     transform: translateY(-40px);
-    animation: fade 1s ease-out forwards;
+    animation: fade 0.5s ease-out forwards;
     transition: color 0.2s, text-shadow 0.2s;
 }
 .title:hover {
@@ -29,7 +29,7 @@
   overflow: hidden;
   border-right: 2px solid transparent;
   white-space: nowrap;
-  animation: typing 2s steps(20, end);
+  animation: typing 3s steps(50, end);
   font-family: 'Courier New', Courier, monospace;
   font-size: 1.5em;
 }
@@ -41,38 +41,23 @@
 
 .bg-blob {
   position: absolute;
-  border-radius: 50%;
+  border-radius: 1%;
   filter: blur(200px);
-  opacity: 0.6;
-  z-index: 0;
+  opacity: 0.5;
+  z-index: -10;
 }
 .bg-blob1 {
-  width: 40vw;
-  height: 40vh;
+  width: 30vw;
+  height: 140vh;
   background: #fbf16a;
-  top: 0vh;
-  left: -20vw;
+  top: -20vh;
+  left: -35vw;
 }
 
 .bg-blob2 {
-  width: 50vw;
-  height: 80vh;
+  width: 30vw;
+  height: 140vh;
   background: #fbf16a;
   bottom: -30vh;
-  right: -20vw;
-}
-
-.bg-blob3 {
-  width: 30vw;
-  height: 30vw;
-  background: #ec54a5;
-  top: -10vw;
-  right: -20vw;
-}
-.bg-blob4 {
-  width: 30vw;
-  height: 30vw;
-  background: #ec54a5;
-  top: 0vw;
-  right: 60vw;
+  right: -35vw;
 }

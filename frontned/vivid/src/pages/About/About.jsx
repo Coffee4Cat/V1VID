@@ -19,10 +19,10 @@ function About() {
             Our platform ensures seamless video delivery with minimal delay, making it ideal for real-time applications.
         </p>
         <p>
-            Camera feed, encoded in h.264 is streamed via WebRTC protocol, enabling fast and reliable work.    
+            Camera feed, encoded in h.264 is streamed via SRT protocol, enabling fast and reliable work.    
         </p>
         <p>
-            For more information, please visit our <a href="#home">homepage</a>.
+            For more information, please contact the Autonomy departpemt.
         </p>
       </div>
     </div>
