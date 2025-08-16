@@ -4,8 +4,8 @@ import About from './pages/About/About.jsx'
 import VideoModes from './pages/VideoModes/VideoModes.jsx'
 import Navigator from './components/Navigator/Navigator.jsx'
 import SingleCamera from './pages/SingleCamera/SingleCamera.jsx'
-import DualCamera from './pages/DualCamera/DualCamera.jsx'
-import EveryCamera from './pages/EveryCamera/EveryCamera.jsx'
+import FourCamera from './pages/FourCamera/FourCamera.jsx'
+import CameraStatus from './pages/CameraStatus/CameraStatus.jsx'
 
 
 function App() {
@@ -18,8 +18,9 @@ function App() {
         <Route path="/about" element={<About />} />
         <Route path="/videomodes" element={<VideoModes />} />
         <Route path="/singlecamera" element={<SingleCamera />} />
-        <Route path="/dualcamera" element={<DualCamera />} />
-        <Route path="/everycamera" element={<EveryCamera />} />
+        <Route path="/fourcamera" element={<FourCamera />} />
+        <Route path="/camerastatus" element={<CameraStatus />} />
+
       </Routes>
     </Router>
   )

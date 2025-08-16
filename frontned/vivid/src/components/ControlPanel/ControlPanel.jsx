@@ -10,9 +10,7 @@ function ControlPanel() {
         <div className={styles.panel}>
             <ul className={styles.blocklist}>
                 <ControlBlock text="Server Alive-Status" address="http://localhost:8080/server-status"/>
-                <ControlBlock text="Camera Alive-Status" address="http://localhost:8080/camera-status"/>
-                <ControlBlock text="Camera Stream" address="http://localhost:8080/stream"/> 
-                {/* some ControlBlocks are only for test purposes */}
+                {/* <ControlBlock text="Camera Alive-Status" address="http://localhost:8080/camera-status"/> */}
             </ul>
         </div>
         </div>

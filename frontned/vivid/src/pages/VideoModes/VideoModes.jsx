@@ -19,8 +19,7 @@ function VideoModes() {
             <div className={styles.panel}>
                 <ul className={styles.modeselect}>
                     <ModeRedirector name="single-camera" link="/singlecamera"/>
-                    <ModeRedirector name="dual-camera" link="/dualcamera"/>
-                    <ModeRedirector name="every-camera" link="/everycamera"/>
+                    <ModeRedirector name="four-camera" link="/fourcamera"/>
                 </ul>
             </div>
         </div>

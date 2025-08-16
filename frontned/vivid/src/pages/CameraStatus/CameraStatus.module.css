@@ -1,0 +1,112 @@
+.wrapper {
+    padding: 1rem;
+    position: relative;
+}
+
+.title {
+    position: relative;
+    font-size: 2.0rem;
+    color: rgba(30, 31, 32, 1);
+    opacity: 0.5;
+    transform: translateY(-40px);
+    animation: fade 0.5s ease-out forwards;
+    transition: color 0.2s, text-shadow 0.2s;
+}
+.title:hover {
+    color: #fa80b9;
+    text-shadow: 0 2px 16px #ff0088, 0 0 4px #fa80b9;
+}
+@keyframes fade {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+
+.description {
+  display: inline-block;
+  overflow: hidden;
+  border-right: 2px solid transparent;
+  white-space: nowrap;
+  animation: typing 3s steps(50, end);
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1.5em;
+}
+@keyframes typing {
+  from { width: 0 }
+  to { width: 100% }
+}
+
+.panel {
+  list-style: none; 
+  width: 100%;
+  height: 400px;
+  border: solid 3px transparent;
+  background: transparent;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem;
+  z-index: 100;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+  box-sizing: border-box;
+  border-radius: 16px;
+  transition-duration: 0.5s;
+  transform: translateY(-40px);
+  animation: fade 0.5s ease-out forwards;
+  transition: color 0.2s, text-shadow 0.2s;
+  text-align: center; 
+  width: fit-content;
+  margin: 0 auto; 
+}
+@keyframes fade {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+.panel:hover {
+    border-color: #fbf16a;
+}
+
+
+
+.blocklist {
+  display: flex;
+  flex-direction: row;
+  gap: 1.5rem;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+
+
+
+
+.bg-blob {
+  position: absolute;
+  border-radius: 1%;
+  filter: blur(200px);
+  opacity: 0.5;
+  z-index: -10;
+}
+.bg-blob1 {
+  width: 30vw;
+  height: 140vh;
+  background: #fbf16a;
+  top: -20vh;
+  left: -35vw;
+}
+
+.bg-blob2 {
+  width: 30vw;
+  height: 140vh;
+  background: #fbf16a;
+  bottom: -30vh;
+  right: -35vw;
+}
+
