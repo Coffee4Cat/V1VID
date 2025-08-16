@@ -24,7 +24,7 @@ function About() {
             These indicators are there just to test the server about it's "alive" state (it can eather be alive or not).<br/>
             <strong>+</strong> <strong>Camera Status</strong> - There you <strong>will</strong> be able to check the general status of the pluged cameras. 
             The main point is to even see what are the exact cameras that work within the system at certain point in time.<br/>
-            <strong>+</strong> <strong>Video Modes</strong> - There you pick you video mode. Basic options are: <i>single-camera</i>, <i>double-camera</i>, <i>every-camera</i>. 
+            <strong>+</strong> <strong>Video Modes</strong> - There you pick you video mode. Basic options are: <i>single-camera</i> and <i>four-camera</i>. 
             From there on the general rule is - pick the camera, receive the livesteam, and watch the rover go!
         </p>
         <h3>How it works?</h3>

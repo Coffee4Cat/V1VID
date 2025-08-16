@@ -1,5 +1,6 @@
 package main
 
+// well I need to do some refactorization here. Its unreadable at this point
 import (
 	"encoding/json"
 	"fmt"
@@ -16,23 +17,22 @@ import (
 	"github.com/pion/webrtc/v3/pkg/media/h264reader"
 )
 
-// Struktura wiadomości sygnalizacyjnej
 type SignalingMessage struct {
 	Type string      `json:"type"`
 	Data interface{} `json:"data"`
 }
 
-// Struktura kamery
 type Camera struct {
 	ID       string
-	Device   string // np. "/dev/video0" lub "0" na Windows
+	Device   string
+	Port     int
 	Track    *webrtc.TrackLocalStaticSample
 	FFmpeg   *exec.Cmd
 	IsActive bool
+	Server   *http.Server
 	mutex    sync.RWMutex
 }
 
-// Manager kamer
 type CameraManager struct {
 	cameras map[string]*Camera
 	mutex   sync.RWMutex
@@ -41,64 +41,60 @@ type CameraManager struct {
 type ServerStatusResponse struct {
 	Status bool `json:"status"`
 }
+
 type CameraStatusResponse struct {
 	Status    bool `json:"status"`
 	CameraNum int  `json:"camera_num"`
 }
 
+type CameraListResponse struct {
+	ID       string `json:"id"`
+	Device   string `json:"device"`
+	Port     int    `json:"port"`
+	IsActive bool   `json:"isActive"`
+}
+
 var (
 	upgrader = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
-			return true // W LAN możemy to uprościć
+			return true
 		},
 	}
 	cameraManager = &CameraManager{
 		cameras: make(map[string]*Camera),
 	}
+	basePort = 8081
 )
 
 func main() {
-	// Konfiguracja WebRTC dla LAN
 	config := webrtc.Configuration{
 		ICEServers: []webrtc.ICEServer{
-			// Dla LAN możemy użyć pustej listy lub lokalny STUN
 			{URLs: []string{"stun:stun.l.google.com:19302"}},
 		},
 	}
 
-	// Inicjalizacja kamer (automatyczne wykrywanie lub konfiguracja)
 	initializeCameras()
+	startCameraServers(config)
+	setupMainAPIServer()
 
-	// WebSocket endpoint
-	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		handleWebSocket(w, r, config)
-	})
-
-	// API endpoints
-	http.HandleFunc("/server-status", serverStatusHandler)
-	http.HandleFunc("/api/cameras", handleCamerasAPI)
-	http.HandleFunc("/api/camera/start/", handleStartCamera)
-	http.HandleFunc("/api/camera/stop/", handleStopCamera)
-
-	// Frontend
-	http.Handle("/", http.FileServer(http.Dir("./static/")))
-
-	fmt.Println("🎥 System kamer WebRTC uruchomiony na porcie 8080")
+	fmt.Println("🎥 System kamer WebRTC uruchomiony!")
+	fmt.Printf("📡 Główne API dostępne na porcie %d\n", basePort-1)
 	fmt.Println("📡 Wykryte kamery:")
 	listAvailableCameras()
-
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	select {}
 }
 
 func initializeCameras() {
-	// Automatyczne wykrywanie kamer Linux/Windows
-	cameras := detectCameras()
+	devices := detectCameras()
 
-	for i, device := range cameras {
+	for i, device := range devices {
 		cameraID := fmt.Sprintf("camera_%d", i)
+		port := basePort + i
+
 		camera := &Camera{
 			ID:       cameraID,
 			Device:   device,
+			Port:     port,
 			IsActive: false,
 		}
 
@@ -106,15 +102,13 @@ func initializeCameras() {
 		cameraManager.cameras[cameraID] = camera
 		cameraManager.mutex.Unlock()
 
-		log.Printf("✅ Zarejestrowano kamerę: %s (urządzenie: %s)", cameraID, device)
+		log.Printf("✅ Zarejestrowano kamerę: %s (urządzenie: %s, port: %d)", cameraID, device, port)
 	}
 }
 
 func detectCameras() []string {
-	// Prosta detekcja - można rozszerzyć
 	var cameras []string
 
-	// Linux
 	for i := 0; i < 4; i++ {
 		device := fmt.Sprintf("/dev/video%d", i)
 		if fileExists(device) {
@@ -122,14 +116,164 @@ func detectCameras() []string {
 		}
 	}
 
-	// Windows (jeśli Linux nie znalazł)
-	if len(cameras) == 0 {
-		for i := 0; i < 4; i++ {
-			cameras = append(cameras, fmt.Sprintf("%d", i))
-		}
+	return cameras
+}
+
+func startCameraServers(config webrtc.Configuration) {
+	cameraManager.mutex.RLock()
+	defer cameraManager.mutex.RUnlock()
+
+	for _, camera := range cameraManager.cameras {
+		go startCameraServer(camera, config)
+	}
+}
+
+func startCameraServer(camera *Camera, config webrtc.Configuration) {
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+		handleCameraWebSocket(w, r, camera, config)
+	})
+
+	mux.HandleFunc("/api/start", func(w http.ResponseWriter, r *http.Request) {
+		handleStartSpecificCamera(w, r, camera)
+	})
+
+	mux.HandleFunc("/api/stop", func(w http.ResponseWriter, r *http.Request) {
+		handleStopSpecificCamera(w, r, camera)
+	})
+
+	mux.HandleFunc("/api/status", func(w http.ResponseWriter, r *http.Request) {
+		handleCameraStatus(w, r, camera)
+	})
+
+	mux.Handle("/", http.FileServer(http.Dir("./static/")))
+
+	server := &http.Server{
+		Addr:    fmt.Sprintf(":%d", camera.Port),
+		Handler: mux,
 	}
 
-	return cameras
+	camera.mutex.Lock()
+	camera.Server = server
+	camera.mutex.Unlock()
+
+	log.Printf("🚀 Uruchamiam serwer dla kamery %s na porcie %d", camera.ID, camera.Port)
+
+	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Printf("❌ Błąd serwera kamery %s: %v", camera.ID, err)
+	}
+}
+
+func setupMainAPIServer() {
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/server-status", serverStatusHandler)
+	mux.HandleFunc("/api/cameras", handleCamerasAPI)
+	mux.HandleFunc("/api/camera/start/", handleStartCamera)
+	mux.HandleFunc("/api/camera/stop/", handleStopCamera)
+
+	mux.Handle("/", http.FileServer(http.Dir("./static/")))
+
+	mainPort := basePort - 1
+	server := &http.Server{
+		Addr:    fmt.Sprintf(":%d", mainPort),
+		Handler: mux,
+	}
+
+	go func() {
+		log.Printf("🌐 Uruchamiam główny serwer API na porcie %d", mainPort)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Printf("❌ Błąd głównego serwera: %v", err)
+		}
+	}()
+}
+
+func handleCameraWebSocket(w http.ResponseWriter, r *http.Request, camera *Camera, config webrtc.Configuration) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Printf("❌ Błąd WebSocket upgrade dla kamery %s: %v", camera.ID, err)
+		return
+	}
+	defer conn.Close()
+
+	log.Printf("🔌 Nowe połączenie WebSocket dla kamery %s", camera.ID)
+
+	peerConnection, err := webrtc.NewPeerConnection(config)
+	if err != nil {
+		log.Printf("❌ Błąd PeerConnection dla kamery %s: %v", camera.ID, err)
+		return
+	}
+	defer peerConnection.Close()
+
+	camera.mutex.RLock()
+	if camera.IsActive && camera.Track != nil {
+		if _, err := peerConnection.AddTrack(camera.Track); err != nil {
+			log.Printf("❌ Błąd dodawania track kamery %s: %v", camera.ID, err)
+		} else {
+			log.Printf("✅ Dodano track kamery %s do PeerConnection", camera.ID)
+		}
+	}
+	camera.mutex.RUnlock()
+
+	peerConnection.OnICECandidate(func(candidate *webrtc.ICECandidate) {
+		if candidate == nil {
+			return
+		}
+		candidateMsg := SignalingMessage{
+			Type: "ice-candidate",
+			Data: candidate.ToJSON(),
+		}
+		conn.WriteJSON(candidateMsg)
+	})
+
+	peerConnection.OnConnectionStateChange(func(state webrtc.PeerConnectionState) {
+		log.Printf("🔄 Stan WebRTC dla kamery %s: %s", camera.ID, state.String())
+	})
+
+	for {
+		var msg SignalingMessage
+		if err := conn.ReadJSON(&msg); err != nil {
+			log.Printf("❌ Błąd WebSocket dla kamery %s: %v", camera.ID, err)
+			break
+		}
+
+		log.Printf("📨 Otrzymano dla kamery %s: %s", camera.ID, msg.Type)
+
+		switch msg.Type {
+		case "viewer":
+			offer, err := peerConnection.CreateOffer(nil)
+			if err != nil {
+				log.Printf("❌ Błąd create offer dla kamery %s: %v", camera.ID, err)
+				continue
+			}
+
+			if err := peerConnection.SetLocalDescription(offer); err != nil {
+				log.Printf("❌ Błąd set local description dla kamery %s: %v", camera.ID, err)
+				continue
+			}
+
+			offerMsg := SignalingMessage{Type: "offer", Data: offer}
+			if err := conn.WriteJSON(offerMsg); err != nil {
+				log.Printf("❌ Błąd wysyłania offer dla kamery %s: %v", camera.ID, err)
+			} else {
+				log.Printf("✅ Wysłano offer do viewera dla kamery %s", camera.ID)
+			}
+
+		case "answer":
+			answerData, _ := json.Marshal(msg.Data)
+			var answer webrtc.SessionDescription
+			json.Unmarshal(answerData, &answer)
+			peerConnection.SetRemoteDescription(answer)
+			log.Printf("✅ Ustawiono answer dla kamery %s", camera.ID)
+
+		case "ice-candidate":
+			candidateData, _ := json.Marshal(msg.Data)
+			var candidate webrtc.ICECandidateInit
+			json.Unmarshal(candidateData, &candidate)
+			peerConnection.AddICECandidate(candidate)
+		}
+	}
 }
 
 func addStartCode(nal []byte) []byte {
@@ -149,7 +293,6 @@ func startCameraStream(camera *Camera) error {
 		return fmt.Errorf("kamera %s już jest aktywna", camera.ID)
 	}
 
-	// Utworzenie H.264 track
 	h264Track, err := webrtc.NewTrackLocalStaticSample(
 		webrtc.RTPCodecCapability{MimeType: "video/H264"},
 		"video",
@@ -161,7 +304,6 @@ func startCameraStream(camera *Camera) error {
 
 	camera.Track = h264Track
 
-	// Uruchomienie FFmpeg dla H.264
 	ffmpegCmd := buildFFmpegCommand(camera.Device)
 
 	log.Printf("🚀 Uruchamiam FFmpeg dla kamery %s: %s", camera.ID, ffmpegCmd.String())
@@ -207,7 +349,6 @@ func startCameraStream(camera *Camera) error {
 				return
 			}
 
-			// jeśli ramka była IDR, doklej SPS/PPS na początek
 			if currentIsIDR && sps != nil && pps != nil {
 				out := []byte{}
 				out = append(out, addStartCode(sps)...)
@@ -227,12 +368,7 @@ func startCameraStream(camera *Camera) error {
 				}
 				log.Printf("❌ Błąd wysyłania sample: %v", err)
 			}
-			// DIAGNOSTICS HERE!!!
-			// else {
-			// 	log.Printf("✅ Wysłano ramkę IDR=%v, len=%d", currentIsIDR, len(frameBuffer))
-			// }
 
-			// reset na następną ramkę
 			frameBuffer = nil
 			currentIsIDR = false
 		}
@@ -261,7 +397,7 @@ func startCameraStream(camera *Camera) error {
 			case 9: // AUD -> koniec ramki
 				flushFrame()
 			default:
-				// inne ignorujemy
+
 			}
 		}
 	}()
@@ -270,7 +406,7 @@ func startCameraStream(camera *Camera) error {
 }
 
 func buildFFmpegCommand(device string) *exec.Cmd {
-	// Konfiguracja FFmpeg dla H.264 z niskim opóźnieniem
+	// Some change will be required as it does not support dynamic parameter change
 	args := []string{
 		"-f", "v4l2",
 		"-framerate", "30",
@@ -293,159 +429,79 @@ func buildFFmpegCommand(device string) *exec.Cmd {
 		"-",
 	}
 
-	// Na Windows zmień -f v4l2 na -f dshow i format urządzenia
-	// args[1] = "dshow"
-	// args[3] = fmt.Sprintf("video=USB2.0 PC CAMERA") // nazwa urządzenia Windows
-
 	return exec.Command("ffmpeg", args...)
 }
 
-func handleWebSocket(w http.ResponseWriter, r *http.Request, config webrtc.Configuration) {
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Printf("❌ Błąd WebSocket upgrade: %v", err)
+func handleStartSpecificCamera(w http.ResponseWriter, r *http.Request, camera *Camera) {
+	setCORSHeaders(w)
+
+	if err := startCameraStream(camera); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	defer conn.Close()
 
-	log.Printf("🔌 Nowe połączenie WebSocket")
-
-	// Utworzenie PeerConnection
-	peerConnection, err := webrtc.NewPeerConnection(config)
-	if err != nil {
-		log.Printf("❌ Błąd PeerConnection: %v", err)
-		return
-	}
-	defer peerConnection.Close()
-
-	// Dodaj wszystkie aktywne kamery do PeerConnection
-	cameraManager.mutex.RLock()
-	for _, camera := range cameraManager.cameras {
-		camera.mutex.RLock()
-		if camera.IsActive && camera.Track != nil {
-			if _, err := peerConnection.AddTrack(camera.Track); err != nil {
-				log.Printf("❌ Błąd dodawania track kamery %s: %v", camera.ID, err)
-			} else {
-				log.Printf("✅ Dodano track kamery %s do PeerConnection", camera.ID)
-			}
-		}
-		camera.mutex.RUnlock()
-	}
-	cameraManager.mutex.RUnlock()
-
-	// ICE candidates
-	peerConnection.OnICECandidate(func(candidate *webrtc.ICECandidate) {
-		if candidate == nil {
-			return
-		}
-		candidateMsg := SignalingMessage{
-			Type: "ice-candidate",
-			Data: candidate.ToJSON(),
-		}
-		conn.WriteJSON(candidateMsg)
-	})
-
-	// Stan połączenia
-	peerConnection.OnConnectionStateChange(func(state webrtc.PeerConnectionState) {
-		log.Printf("🔄 Stan WebRTC: %s", state.String())
-	})
-
-	// Obsługa wiadomości
-	for {
-		var msg SignalingMessage
-		if err := conn.ReadJSON(&msg); err != nil {
-			log.Printf("❌ Błąd WebSocket: %v", err)
-			break
-		}
-
-		log.Printf("📨 Otrzymano: %s", msg.Type)
-
-		switch msg.Type {
-		case "viewer":
-			// Klient chce oglądać - wyślij offer
-			offer, err := peerConnection.CreateOffer(nil)
-			if err != nil {
-				log.Printf("❌ Błąd create offer: %v", err)
-				continue
-			}
-
-			if err := peerConnection.SetLocalDescription(offer); err != nil {
-				log.Printf("❌ Błąd set local description: %v", err)
-				continue
-			}
-
-			offerMsg := SignalingMessage{Type: "offer", Data: offer}
-			if err := conn.WriteJSON(offerMsg); err != nil {
-				log.Printf("❌ Błąd wysyłania offer: %v", err)
-			} else {
-				log.Printf("✅ Wysłano offer do viewera")
-			}
-
-		case "answer":
-			answerData, _ := json.Marshal(msg.Data)
-			var answer webrtc.SessionDescription
-			json.Unmarshal(answerData, &answer)
-			peerConnection.SetRemoteDescription(answer)
-			log.Printf("✅ Ustawiono answer")
-
-		case "ice-candidate":
-			candidateData, _ := json.Marshal(msg.Data)
-			var candidate webrtc.ICECandidateInit
-			json.Unmarshal(candidateData, &candidate)
-			peerConnection.AddICECandidate(candidate)
-		}
-	}
+	resp := CameraStatusResponse{Status: true, CameraNum: 1}
+	json.NewEncoder(w).Encode(resp)
+	log.Printf("✅ Uruchomiono kamerę %s", camera.ID)
 }
 
-// API endpoints
+func handleStopSpecificCamera(w http.ResponseWriter, r *http.Request, camera *Camera) {
+	setCORSHeaders(w)
+
+	camera.mutex.Lock()
+	if camera.FFmpeg != nil {
+		camera.FFmpeg.Process.Kill()
+		camera.FFmpeg = nil
+	}
+	camera.IsActive = false
+	camera.mutex.Unlock()
+
+	resp := CameraStatusResponse{Status: false, CameraNum: 1}
+	json.NewEncoder(w).Encode(resp)
+	log.Printf("⏹️ Zatrzymano kamerę %s", camera.ID)
+}
+
+func handleCameraStatus(w http.ResponseWriter, r *http.Request, camera *Camera) {
+	setCORSHeaders(w)
+
+	camera.mutex.RLock()
+	isActive := camera.IsActive
+	camera.mutex.RUnlock()
+
+	resp := CameraStatusResponse{Status: isActive, CameraNum: 1}
+	json.NewEncoder(w).Encode(resp)
+}
+
 func handleCamerasAPI(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-	w.Header().Set("Content-Type", "application/json")
+	setCORSHeaders(w)
+
 	cameraManager.mutex.RLock()
 	defer cameraManager.mutex.RUnlock()
 
-	type CameraInfo struct {
-		ID       string `json:"id"`
-		Device   string `json:"device"`
-		IsActive bool   `json:"isActive"`
-	}
-
-	var cameras []CameraInfo
+	var cameras []CameraListResponse
 	for _, camera := range cameraManager.cameras {
 		camera.mutex.RLock()
-		cameras = append(cameras, CameraInfo{
+		cameras = append(cameras, CameraListResponse{
 			ID:       camera.ID,
 			Device:   camera.Device,
+			Port:     camera.Port,
 			IsActive: camera.IsActive,
 		})
 		camera.mutex.RUnlock()
 	}
 
-	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(cameras)
 }
 
 func serverStatusHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-	w.Header().Set("Content-Type", "application/json")
+	setCORSHeaders(w)
 
-	resp := CameraStatusResponse{Status: true, CameraNum: 1} /// Last field unusted
-	err := json.NewEncoder(w).Encode(resp)
-	if err != nil {
-		fmt.Println("sth went wrong")
-		return
-	}
+	resp := ServerStatusResponse{Status: true}
+	json.NewEncoder(w).Encode(resp)
 }
 
 func handleStartCamera(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-	w.Header().Set("Content-Type", "application/json")
+	setCORSHeaders(w)
 	cameraID := r.URL.Path[len("/api/camera/start/"):]
 
 	cameraManager.mutex.RLock()
@@ -461,24 +517,14 @@ func handleStartCamera(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	camera.mutex.Lock()
-	camera.IsActive = true
-	camera.mutex.Unlock()
-	resp := CameraStatusResponse{Status: true, CameraNum: 1} /// Last field unusted
-	err := json.NewEncoder(w).Encode(resp)
-	if err != nil {
-		fmt.Println("sth went wrong")
-		return
-	}
+
+	resp := CameraStatusResponse{Status: true, CameraNum: 1}
+	json.NewEncoder(w).Encode(resp)
 	log.Printf("✅ Uruchomiono kamerę %s", cameraID)
-	w.WriteHeader(http.StatusOK)
 }
 
 func handleStopCamera(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-	w.Header().Set("Content-Type", "application/json")
+	setCORSHeaders(w)
 	cameraID := r.URL.Path[len("/api/camera/stop/"):]
 
 	cameraManager.mutex.RLock()
@@ -498,8 +544,16 @@ func handleStopCamera(w http.ResponseWriter, r *http.Request) {
 	camera.IsActive = false
 	camera.mutex.Unlock()
 
+	resp := CameraStatusResponse{Status: false, CameraNum: 1}
+	json.NewEncoder(w).Encode(resp)
 	log.Printf("⏹️ Zatrzymano kamerę %s", cameraID)
-	w.WriteHeader(http.StatusOK)
+}
+
+func setCORSHeaders(w http.ResponseWriter) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	w.Header().Set("Content-Type", "application/json")
 }
 
 func listAvailableCameras() {
@@ -512,6 +566,6 @@ func listAvailableCameras() {
 	}
 
 	for _, camera := range cameraManager.cameras {
-		fmt.Printf("   📷 %s -> %s\n", camera.ID, camera.Device)
+		fmt.Printf("   📷 %s -> %s (port: %d)\n", camera.ID, camera.Device, camera.Port)
 	}
 }

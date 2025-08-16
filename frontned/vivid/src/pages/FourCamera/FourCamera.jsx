@@ -1,124 +1,54 @@
-// import React from "react";
-// import styles from "./DualCamera.module.css"
+import React, { useRef, useState, useEffect } from "react";
+import styles from './FourCamera.module.css';
+import CameraPicker from "../../components/CameraPicker/CameraPicker";
+import StreamViewer from "../../components/StreamViewer/StreamViewer";
 
 
 
-// function DualCamera() {
-
-//     return (
-//         <div className={styles.wrapper}>
-//             <div className={styles.title}>
-//                 <br/>
-//                 <p>Pick the double-trouble of your choice</p>
-//             </div>
-//         </div>
-//     );
-
-// };
-
-// export default DualCamera
-
-import React, { useEffect, useRef } from "react";
-
-export default function FourCamera() {
-  const videoRef = useRef(null);
-  const socketRef = useRef(null);
-  const peerConnectionRef = useRef(null);
+const FourCamera = () => {
+  const [camport1, setCamport1] = useState(8081);
+  const [camname1, setCamname1] = useState("camera_0")
+  const [camport2, setCamport2] = useState(8081);
+  const [camname2, setCamname2] = useState("camera_1")
+  const [camport3, setCamport3] = useState(8082);
+  const [camname3, setCamname3] = useState("camera_2")
+  const [camport4, setCamport4] = useState(8083);
+  const [camname4, setCamname4] = useState("camera_3")
+  const [cameras, setCameras] = useState([]);
 
   useEffect(() => {
-    // Połączenie WebSocket zamiast Socket.IO
-    socketRef.current = new WebSocket('ws://localhost:8080/ws');
-    console.log("start");
-
-    const peerConnection = new RTCPeerConnection({
-      iceServers: [
-        { urls: "stun:stun.l.google.com:19302" } // Dodaj STUN serwer
-      ],
-    });
-    peerConnectionRef.current = peerConnection;
-
-    peerConnection.ontrack = (event) => {
-      console.log("Otrzymano track", event);
-      if (videoRef.current) {
-        videoRef.current.srcObject = event.streams[0];
+    const fetchCameras = async () => {
+      try {
+        const response = await fetch("http://localhost:8080/api/cameras");
+        const data = await response.json();
+        setCameras(data);
+      } catch (err) {
+        console.error("Błąd pobierania kamer:", err);
       }
     };
 
-    peerConnection.onicecandidate = (event) => {
-      if (event.candidate) {
-        // Wysyłanie jako JSON z typem wiadomości
-        socketRef.current.send(JSON.stringify({
-          type: "ice-candidate",
-          data: event.candidate
-        }));
-      }
-    };
-
-    // Obsługa wiadomości WebSocket
-    socketRef.current.onmessage = async (event) => {
-      const message = JSON.parse(event.data);
-      
-      switch (message.type) {
-        case "offer":
-          console.log("Otrzymano offer");
-          await peerConnection.setRemoteDescription(message.data);
-          const answer = await peerConnection.createAnswer();
-          await peerConnection.setLocalDescription(answer);
-          
-          socketRef.current.send(JSON.stringify({
-            type: "answer",
-            data: answer
-          }));
-          break;
-          
-        case "ice-candidate":
-          console.log("Otrzymano ICE candidate");
-          try {
-            await peerConnection.addIceCandidate(message.data);
-          } catch (e) {
-            console.error("Błąd dodawania ICE candidate:", e);
-          }
-          break;
-          
-        default:
-          console.log("Nieznany typ wiadomości:", message.type);
-      }
-    };
-
-    socketRef.current.onopen = () => {
-      console.log("WebSocket połączony");
-      // Informujemy serwer, że jesteśmy viewer
-      socketRef.current.send(JSON.stringify({
-        type: "viewer",
-        data: {}
-      }));
-    };
-
-    socketRef.current.onerror = (error) => {
-      console.error("WebSocket error:", error);
-    };
-
-    return () => {
-      if (peerConnectionRef.current) {
-        peerConnectionRef.current.close();
-      }
-      if (socketRef.current) {
-        socketRef.current.close();
-      }
-    };
+    fetchCameras();
   }, []);
 
+
   return (
-    <div>
-      <h2>Podgląd kamery</h2>
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        muted
-        controls
-        style={{ width: "100%", maxWidth: 640 }}
-      />
+    <div className={styles.wrapper}>
+      <h2>MULTIPLE CAMERA VIEW</h2>
+      <ul className={styles.camerapicker_list}>
+        <CameraPicker title="1" cameras={cameras} setCamport={setCamport1} setCamname={setCamname1} />
+        <CameraPicker title="2" cameras={cameras} setCamport={setCamport2} setCamname={setCamname2} />
+        <CameraPicker title="3" cameras={cameras} setCamport={setCamport3} setCamname={setCamname3} />
+        <CameraPicker title="4" cameras={cameras} setCamport={setCamport4} setCamname={setCamname4} />
+      </ul>
+
+      <div className={styles.streamgrid}>
+        <StreamViewer monitor="monitor 1" camname={camname1} camport={camport1} x_size={640} y_size={360} />
+        <StreamViewer monitor="monitor 2" camname={camname2} camport={camport2} x_size={640} y_size={360} />
+        <StreamViewer monitor="monitor 3" camname={camname3} camport={camport3} x_size={640} y_size={360} />
+        <StreamViewer monitor="monitor 4" camname={camname4} camport={camport4} x_size={640} y_size={360} />
+      </div>
     </div>
   );
-}
+};
+
+export default FourCamera;

@@ -1,91 +1,33 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import styles from './SingleCamera.module.css';
+import CameraPicker from "../../components/CameraPicker/CameraPicker";
+import StreamViewer from "../../components/StreamViewer/StreamViewer";
 
 const SingleCamera = () => {
-  const videoRef = useRef(null);
-  const pcRef = useRef(null);
-  const wsRef = useRef(null);
-  const [started, setStarted] = useState(false);
+  const [camport, setCamport] = useState(8081);
+  const [camname, setCamname] = useState("camera_0")
+  const [cameras, setCameras] = useState([]);
 
-  const startCamera = () => {
-    if (started) return;
-    setStarted(true);
-
-    const ws = new WebSocket("ws://localhost:8080/ws");
-    wsRef.current = ws;
-
-    const pc = new RTCPeerConnection({ iceServers: [] });
-    pcRef.current = pc;
-
-    pc.ontrack = (event) => {
-      if (videoRef.current) {
-        videoRef.current.srcObject = event.streams[0];
+  useEffect(() => {
+    const fetchCameras = async () => {
+      try {
+        const response = await fetch("http://localhost:8080/api/cameras");
+        const data = await response.json();
+        setCameras(data);
+      } catch (err) {
+        console.error("Błąd pobierania kamer:", err);
       }
     };
 
-    pc.onicecandidate = (event) => {
-      if (event.candidate) {
-        ws.send(JSON.stringify({ type: "ice-candidate", data: event.candidate }));
-      }
-    };
+    fetchCameras();
+  }, []);
 
-    ws.onopen = () => {
-      console.log("🔌 Połączono z WebSocket, wysyłam viewer");
-      ws.send(JSON.stringify({ type: "viewer" }));
-    };
-
-    ws.onmessage = async (message) => {
-      const msg = JSON.parse(message.data);
-      switch (msg.type) {
-        case "offer":
-          await pc.setRemoteDescription(msg.data);
-          const answer = await pc.createAnswer();
-          await pc.setLocalDescription(answer);
-          ws.send(JSON.stringify({ type: "answer", data: answer }));
-          break;
-
-        case "ice-candidate":
-          try {
-            await pc.addIceCandidate(msg.data);
-          } catch (err) {
-            console.error("❌ Błąd dodawania ICE candidate:", err);
-          }
-          break;
-
-        default:
-          console.log("Nieznany typ wiadomości:", msg.type);
-      }
-    };
-
-    ws.onclose = () => console.log("🔌 WebSocket zamknięty");
-  };
-
-  const stopCamera = () => {
-    if (pcRef.current) {
-      pcRef.current.close();
-      pcRef.current = null;
-    }
-    if (wsRef.current) {
-      wsRef.current.close();
-      wsRef.current = null;
-    }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-    setStarted(false);
-  };
 
   return (
     <div className={styles.wrapper}>
       <h2>SINGLE CAMERA VIEW</h2>
-      {!started ? (
-        <button onClick={startCamera}>Start Watching Stream</button>
-      ) : (
-        <button onClick={stopCamera}>Stop Watching Stream</button>
-      )}
-      <div className={styles.container}>
-        <video ref={videoRef} autoPlay playsInline muted width={1280} height={720} />
-      </div>
+      <CameraPicker title="1" cameras={cameras} setCamport={setCamport} setCamname={setCamname} />
+      <StreamViewer camname={camname} camport={camport} x_size={1280} y_size={720} />
     </div>
   );
 };
