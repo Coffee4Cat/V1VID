@@ -69,7 +69,8 @@ var (
 func main() {
 	config := webrtc.Configuration{
 		ICEServers: []webrtc.ICEServer{
-			{URLs: []string{"stun:stun.l.google.com:19302"}},
+			// {URLs: []string{"stun:stun.l.google.com:19302"}},
+			{URLs: []string{}},
 		},
 	}
 
@@ -109,10 +110,12 @@ func initializeCameras() {
 func detectCameras() []string {
 	var cameras []string
 
-	for i := 0; i < 4; i++ {
-		device := fmt.Sprintf("/dev/video%d", i)
-		if fileExists(device) {
-			cameras = append(cameras, device)
+	for i := 0; i < 25; i++ {
+		if i == 0 || i == 2 || i == 6 || i == 10 || i == 14 || i == 18 || i == 22 {
+			device := fmt.Sprintf("/dev/video%d", i)
+			if fileExists(device) {
+				cameras = append(cameras, device)
+			}
 		}
 	}
 
@@ -383,7 +386,6 @@ func startCameraStream(camera *Camera) error {
 				}
 				break
 			}
-
 			switch nal.UnitType {
 			case 7: // SPS
 				sps = nal.Data
@@ -407,20 +409,22 @@ func startCameraStream(camera *Camera) error {
 
 func buildFFmpegCommand(device string) *exec.Cmd {
 	// Some change will be required as it does not support dynamic parameter change
+	// device = "/dev/video0"
 	args := []string{
 		"-f", "v4l2",
+		"-input_format", "mjpeg", // dodane - czytanie w MJPEG
 		"-framerate", "30",
-		"-video_size", "640x480",
+		"-video_size", "1024x576",
 		"-i", device,
 		"-c:v", "libx264",
-		"-preset", "ultrafast",
+		"-preset", "fast",
 		"-profile:v", "baseline",
 		"-tune", "zerolatency",
 		"-pix_fmt", "yuv420p",
 		"-r", "30",
-		"-b:v", "1M",
-		"-maxrate", "1M",
-		"-bufsize", "2M",
+		"-b:v", "4M",
+		"-maxrate", "5M",
+		"-bufsize", "8M",
 		"-g", "30",
 		"-x264opts", "keyint=30:no-scenecut:aud",
 		"-fflags", "nobuffer",
@@ -429,7 +433,28 @@ func buildFFmpegCommand(device string) *exec.Cmd {
 		"-",
 	}
 
+	// args := []string{
+	// 	"-f", "v4l2",
+	// 	"-framerate", "30",
+	// 	"-video_size", "640x480",
+	// 	"-i", device,
+	// 	"-c:v", "copy",
+	// 	"-fflags", "nobuffer",
+	// 	"-flags", "low_delay",
+	// 	"-vsync", "0",
+	// 	"-f", "h264",
+	// 	"-bsf:v", "h264_mp4toannexb",
+	// 	"-",
+	// }
+
 	return exec.Command("ffmpeg", args...)
+	// return exec.Command("gst-launch-1.0",
+	// 	"v4l2src", "device="+device, "do-timestamp=true", "!",
+	// 	"video/x-h264,width=640,height=480,framerate=30/1", "!",
+	// 	"h264parse", "config-interval=-1", "!",
+	// 	"video/x-h264,stream-format=byte-stream,alignment=au", "!",
+	// 	"fdsink", "fd=1", "sync=false")
+
 }
 
 func handleStartSpecificCamera(w http.ResponseWriter, r *http.Request, camera *Camera) {

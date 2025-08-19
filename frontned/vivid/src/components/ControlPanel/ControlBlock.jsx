@@ -1,4 +1,4 @@
-import React, {useState} from "react";
+import React, {useState, useEffect} from "react";
 import styles from "./ControlBlock.module.css"
 
 
@@ -19,6 +19,8 @@ function ControlBlock({text, address}) {
 
         }
     };
+
+    useEffect(() => { handleClick(); }, []);
     
     return (
         <div className={`${styles.controlblock} ${enable ? styles.enabled : ""}`}>

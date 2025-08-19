@@ -78,7 +78,7 @@ const StreamViewer = ({monitor, camname, camport, x_size, y_size}) => {
 
     return (
     <div className={styles.wrapper}>
-        <h2>{monitor}</h2>
+        {/* <h2>{monitor}</h2> */}
         {!started ? (
         <button onClick={startCamera}>Start Watching <strong>{camname}</strong></button>
         ) : (

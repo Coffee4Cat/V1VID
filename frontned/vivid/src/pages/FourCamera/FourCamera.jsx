@@ -42,10 +42,10 @@ const FourCamera = () => {
       </ul>
 
       <div className={styles.streamgrid}>
-        <StreamViewer monitor="monitor 1" camname={camname1} camport={camport1} x_size={640} y_size={360} />
-        <StreamViewer monitor="monitor 2" camname={camname2} camport={camport2} x_size={640} y_size={360} />
-        <StreamViewer monitor="monitor 3" camname={camname3} camport={camport3} x_size={640} y_size={360} />
-        <StreamViewer monitor="monitor 4" camname={camname4} camport={camport4} x_size={640} y_size={360} />
+        <StreamViewer monitor="monitor 1" camname={camname1} camport={camport1} x_size={700} y_size={500} />
+        <StreamViewer monitor="monitor 2" camname={camname2} camport={camport2} x_size={700} y_size={500} />
+        <StreamViewer monitor="monitor 3" camname={camname3} camport={camport3} x_size={700} y_size={500} />
+        <StreamViewer monitor="monitor 4" camname={camname4} camport={camport4} x_size={700} y_size={500} />
       </div>
     </div>
   );

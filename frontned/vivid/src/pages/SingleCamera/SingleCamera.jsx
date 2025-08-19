@@ -27,7 +27,7 @@ const SingleCamera = () => {
     <div className={styles.wrapper}>
       <h2>SINGLE CAMERA VIEW</h2>
       <CameraPicker title="1" cameras={cameras} setCamport={setCamport} setCamname={setCamname} />
-      <StreamViewer camname={camname} camport={camport} x_size={1280} y_size={720} />
+      <StreamViewer camname={camname} camport={camport} x_size={1600} y_size={1000} />
     </div>
   );
 };
