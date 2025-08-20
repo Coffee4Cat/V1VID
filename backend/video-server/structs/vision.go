@@ -17,6 +17,7 @@ type Camera struct {
 	IsActive bool
 	Server   *http.Server
 	MMutex   sync.RWMutex
+	Quality  int
 }
 
 type CameraManager struct {

@@ -67,6 +67,14 @@ func startCameraServer(camera *structs.Camera, config webrtc.Configuration) {
 		network.HandleCameraStatus(w, r, camera)
 	})
 
+	mux.HandleFunc("/api/goodquality", func(w http.ResponseWriter, r *http.Request) {
+		network.HandleGoodQualitySpecificCamera(w, r)
+	})
+
+	mux.HandleFunc("/api/badquality", func(w http.ResponseWriter, r *http.Request) {
+		network.HandleBadQualitySpecificCamera(w, r)
+	})
+
 	mux.Handle("/", http.FileServer(http.Dir("./static/")))
 
 	server := &http.Server{

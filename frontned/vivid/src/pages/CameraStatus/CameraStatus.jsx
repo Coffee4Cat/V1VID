@@ -42,7 +42,7 @@ function CameraStatus() {
         ) : (
           <ul className={styles.blocklist}>
             {cameras.map((camera) => (
-                <CameraActivator text={camera.id} address="http://localhost:8080/api/camera" camera_id={camera.id} entry_status={camera.isActive}/>
+                <CameraActivator text={camera.id} address="http://localhost:8080/api/camera" camera_id={camera.id} entry_status={camera.isActive} entry_quality={camera.quality}/>
             ))}
           </ul>
         )}

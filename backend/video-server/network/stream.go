@@ -15,31 +15,58 @@ import (
 	"github.com/pion/webrtc/v3/pkg/media/h264reader"
 )
 
-func BuildFFmpegCommand(device string) *exec.Cmd {
-	args := []string{
-		"-f", "v4l2",
-		"-input_format", "mjpeg", // dodane - czytanie w MJPEG
-		"-framerate", "30",
-		"-video_size", "1024x576",
-		"-i", device,
-		"-c:v", "libx264",
-		"-preset", "fast",
-		"-profile:v", "baseline",
-		"-tune", "zerolatency",
-		"-pix_fmt", "yuv420p",
-		"-r", "30",
-		"-b:v", "4M",
-		"-maxrate", "5M",
-		"-bufsize", "8M",
-		"-g", "30",
-		"-x264opts", "keyint=30:no-scenecut:aud",
-		"-fflags", "nobuffer",
-		"-flags", "low_delay",
-		"-f", "h264",
-		"-",
+func BuildFFmpegCommand(device string, mode int) *exec.Cmd {
+	var args []string
+	if mode == 1 {
+
+		args = []string{
+			"-f", "v4l2",
+			"-input_format", "mjpeg",
+			"-framerate", "30",
+			"-video_size", "1024x576",
+			"-i", device,
+			"-c:v", "libx264",
+			"-preset", "fast",
+			"-profile:v", "baseline",
+			"-tune", "zerolatency",
+			"-pix_fmt", "yuv420p",
+			"-r", "30",
+			"-b:v", "4M",
+			"-maxrate", "5M",
+			"-bufsize", "8M",
+			"-g", "30",
+			"-x264opts", "keyint=30:no-scenecut:aud",
+			"-fflags", "nobuffer",
+			"-flags", "low_delay",
+			"-f", "h264",
+			"-",
+		}
+	} else {
+		args = []string{
+			"-f", "v4l2",
+			"-input_format", "mjpeg",
+			"-framerate", "30",
+			"-video_size", "640x360",
+			"-i", device,
+			"-c:v", "libx264",
+			"-preset", "fast",
+			"-profile:v", "baseline",
+			"-tune", "zerolatency",
+			"-pix_fmt", "yuv420p",
+			"-r", "30",
+			"-b:v", "4M",
+			"-maxrate", "5M",
+			"-bufsize", "8M",
+			"-g", "30",
+			"-x264opts", "keyint=30:no-scenecut:aud",
+			"-fflags", "nobuffer",
+			"-flags", "low_delay",
+			"-f", "h264",
+			"-",
+		}
 	}
 
-	// WOLNO
+	// WOLNO - to jest z passthorugh na h264
 	// args := []string{
 	// 	"-f", "v4l2",
 	// 	"-input_format", "h264",
@@ -182,7 +209,7 @@ func StartCameraStream(camera *structs.Camera) error {
 
 	camera.Track = h264Track
 
-	ffmpegCmd := BuildFFmpegCommand(camera.Device)
+	ffmpegCmd := BuildFFmpegCommand(camera.Device, camera.Quality)
 
 	log.Printf("🚀 Uruchamiam FFmpeg dla kamery %s: %s", camera.ID, ffmpegCmd.String())
 

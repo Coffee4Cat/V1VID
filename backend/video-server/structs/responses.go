@@ -18,6 +18,7 @@ type CameraListResponse struct {
 	Device   string `json:"device"`
 	Port     int    `json:"port"`
 	IsActive bool   `json:"isActive"`
+	Quality  int    `json:"quality"`
 }
 
 func SetCORSHeaders(w http.ResponseWriter) {

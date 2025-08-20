@@ -9,12 +9,33 @@
   transition: background-color 0.9s ease;
 }
 
-.enabled {
+.enabledquality1 {
   color: #23242a;
   background: linear-gradient(to bottom, #fbf16a, #fa80b9);
   text-shadow: 0 2px 16px #d3c6d2, 0 0 4px #fa80b9;
   transition: background 1s ease, color 0.3s ease, text-shadow 0.3s ease;
 }
+.enabledquality2 {
+  color: #23242a;
+  background: linear-gradient(to bottom, #fbf16a, #12fdd6);
+  text-shadow: 0 2px 16px #d3c6d2, 0 0 4px #12fdd6;
+  transition: background 1s ease, color 0.3s ease, text-shadow 0.3s ease;
+}
+.disabledquality1 {
+  transition: background 1s ease, color 0.3s ease, text-shadow 0.3s ease;
+  border-style: solid;
+  border-width: 10px;
+  border-radius: 20px;
+  border-color: #fa80b9;
+}
+.disabledquality2 {
+  transition: background 1s ease, color 0.3s ease, text-shadow 0.3s ease;
+  border-style: solid;
+  border-width: 10px;
+  border-radius: 20px;
+  border-color: #12fdd6;
+}
+
 
 
 
@@ -42,3 +63,42 @@
 .button:hover {
   background: #fea143;
 }
+
+
+.modelist {
+  background-color: #ccc; /* szare tło */
+  padding: 10px;           /* odstęp wewnętrzny */
+  border-radius: 8px;      /* zaokrąglone rogi */
+  display: flexbox;           /* przyciski w jednym wierszu */
+  gap: 10px;               /* odstęp między przyciskami */
+  list-style: none;        /* usuwa standardowe wypunktowanie */
+  margin: 0;               /* usuwa domyślny margines ul */
+}
+
+.qbutton1 {
+  padding: 0.5em 1.2em;
+  border-radius: 8px;
+  border: none;
+  background: #fa80b9;
+  color: #272728;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.qbutton1:hover {
+  background: #ffffff;
+}
+.qbutton2 {
+  padding: 0.5em 1.2em;
+  border-radius: 8px;
+  border: none;
+  background: #12fdd6;
+  color: #272728;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.qbutton2:hover {
+  background: #ffffff;
+}
+
