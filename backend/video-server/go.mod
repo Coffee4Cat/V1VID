@@ -1,13 +1,15 @@
-module example.com/milosz/V1VID/backend
+module vivid
 
 go 1.22.2
 
-require github.com/pion/webrtc/v3 v3.3.6
+require (
+	github.com/gorilla/websocket v1.5.3
+	github.com/pion/webrtc/v3 v3.3.6
+)
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/pion/datachannel v1.5.10 // indirect
 	github.com/pion/dtls/v2 v2.2.12 // indirect
 	github.com/pion/ice/v2 v2.3.38 // indirect

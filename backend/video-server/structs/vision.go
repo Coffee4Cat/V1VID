@@ -1,0 +1,29 @@
+package structs
+
+import (
+	"net/http"
+	"os/exec"
+	"sync"
+
+	"github.com/pion/webrtc/v3"
+)
+
+type Camera struct {
+	ID       string
+	Device   string
+	Port     int
+	Track    *webrtc.TrackLocalStaticSample
+	FFmpeg   *exec.Cmd
+	IsActive bool
+	Server   *http.Server
+	MMutex   sync.RWMutex
+}
+
+type CameraManager struct {
+	Cameras map[string]*Camera
+	MMutex  sync.RWMutex
+}
+
+var Manager = &CameraManager{
+	Cameras: make(map[string]*Camera),
+}
