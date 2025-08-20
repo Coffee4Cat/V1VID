@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from "react";
 import styles from './FourCamera.module.css';
 import CameraPicker from "../../components/CameraPicker/CameraPicker";
 import StreamViewer from "../../components/StreamViewer/StreamViewer";
-
+import config from "../../config.js"
 
 
 const FourCamera = () => {
@@ -19,7 +19,7 @@ const FourCamera = () => {
   useEffect(() => {
     const fetchCameras = async () => {
       try {
-        const response = await fetch("http://localhost:8080/api/cameras");
+        const response = await fetch(`http://${config.IPADDR}:${config.PORT}/api/cameras`);
         const data = await response.json();
         setCameras(data);
       } catch (err) {
