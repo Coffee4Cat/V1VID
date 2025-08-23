@@ -1,6 +1,7 @@
 package network
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,7 +13,6 @@ import (
 
 	"github.com/pion/webrtc/v3"
 	"github.com/pion/webrtc/v3/pkg/media"
-	"github.com/pion/webrtc/v3/pkg/media/h264reader"
 )
 
 func BuildFFmpegCommand(device string, mode int) *exec.Cmd {
@@ -66,27 +66,48 @@ func BuildFFmpegCommand(device string, mode int) *exec.Cmd {
 		}
 	}
 
-	// WOLNO - to jest z passthorugh na h264
-	// args := []string{
-	// 	"-f", "v4l2",
-	// 	"-input_format", "h264",
-	// 	"-framerate", "30",
-	// 	"-video_size", "1024x576",
-	// 	"-i", device,
-	// 	"-c:v", "libx264", // lekkie rekodowanie
-	// 	"-preset", "ultrafast", // najszybszy preset
-	// 	"-tune", "zerolatency",
-	// 	"-profile:v", "baseline", // profil zgodny z WebRTC
-	// 	"-pix_fmt", "yuv420p",
-	// 	"-g", "30", // keyframe co sekundę
-	// 	"-x264opts", "keyint=30:no-scenecut:aud", // NAL AUD units dla WebRTC
-	// 	"-f", "h264",
-	// 	"-fflags", "nobuffer",
-	// 	"-flags", "low_delay",
-	// 	"-",
+	// DOBRE
+	// args = []string{
+	// 	"v4l2src", "device=/dev/video4", "do-timestamp=true", "num-buffers=-1", "io-mode=2",
+	// 	"!", "video/x-h264,width=1280,height=720,framerate=30/1",
+	// 	"!", "h264parse", "config-interval=1", "disable-passthrough=true",
+	// 	"!", "queue", "max-size-buffers=1", "leaky=downstream",
+	// 	"!", "filesink", "location=/dev/stdout", "sync=false", "async=true", "buffer-mode=0",
 	// }
 
-	return exec.Command("ffmpeg", args...)
+	args = []string{
+		"v4l2src", "device=/dev/video4",
+		"do-timestamp=true",
+		"io-mode=2",
+		"!", "video/x-h264,width=1280,height=720,framerate=30/1",
+		"!", "h264parse",
+		"config-interval=1", // Częściej wysyłaj SPS/PPS
+		"disable-passthrough=true",
+		"!", "queue",
+		"max-size-time=33333333", // ~1 frame at 30fps (w nanosekundach)
+		"leaky=upstream",         // Zrzucaj stare ramki, nie nowe
+		"!", "filesink", "location=/dev/stdout",
+		"sync=false",
+		"async=false",
+		"buffer-mode=unbuffered", // Zmiana z 0 na unbuffered
+	}
+
+	// 	args = []string{
+	// 	// "v4l2src", "device=/dev/video4",
+	// 	// "!", "video/x-h264,width=1280,height=720,framerate=30/1",
+	// 	// "!", "filesink", "location=/dev/stdout", "sync=false",
+	// }
+
+	// args = []string{
+	// 	"v4l2src", "device=device=/dev/video4", "do-timestamp=true", "io-mode=2",
+	// 	"!", "video/x-h264,width=1280,height=720,framerate=30/1",
+	// 	"!", "h264parse", "config-interval=-1",
+	// 	"!", "rtph264pay", "pt=96", "config-interval=-1",
+	// 	"!", "rtph264depay",
+	// 	"!", "filesink", "location=/dev/stdout", "sync=false", "buffer-mode=unbuffered",
+	// }
+
+	return exec.Command("gst-launch-1.0", args...)
 
 }
 
@@ -190,6 +211,43 @@ func HandleCameraWebSocket(w http.ResponseWriter, r *http.Request, camera *struc
 func addStartCode(nal []byte) []byte {
 	return append([]byte{0x00, 0x00, 0x00, 0x01}, nal...)
 }
+
+// Funkcja do znajdowania NAL units w surowym strumieniu H.264
+func findNALUnits(data []byte) [][]byte {
+	var nalUnits [][]byte
+	start := 0
+
+	for i := 0; i < len(data)-3; i++ {
+		// Szukamy start code: 0x00 0x00 0x00 0x01 lub 0x00 0x00 0x01
+		if data[i] == 0x00 && data[i+1] == 0x00 {
+			if (i+3 < len(data) && data[i+2] == 0x00 && data[i+3] == 0x01) ||
+				(data[i+2] == 0x01) {
+
+				// Jeśli to nie pierwszy NAL unit, zapisz poprzedni
+				if start < i {
+					nalUnits = append(nalUnits, data[start:i])
+				}
+
+				// Ustaw nowy start
+				if data[i+2] == 0x00 && data[i+3] == 0x01 {
+					start = i + 4 // 4-byte start code
+					i += 3
+				} else {
+					start = i + 3 // 3-byte start code
+					i += 2
+				}
+			}
+		}
+	}
+
+	// Dodaj ostatni NAL unit
+	if start < len(data) {
+		nalUnits = append(nalUnits, data[start:])
+	}
+
+	return nalUnits
+}
+
 func StartCameraStream(camera *structs.Camera) error {
 	camera.MMutex.Lock()
 	defer camera.MMutex.Unlock()
@@ -206,11 +264,9 @@ func StartCameraStream(camera *structs.Camera) error {
 	if err != nil {
 		return fmt.Errorf("błąd tworzenia H.264 track: %v", err)
 	}
-
 	camera.Track = h264Track
 
 	ffmpegCmd := BuildFFmpegCommand(camera.Device, camera.Quality)
-
 	log.Printf("🚀 Uruchamiam FFmpeg dla kamery %s: %s", camera.ID, ffmpegCmd.String())
 
 	stdout, err := ffmpegCmd.StdoutPipe()
@@ -230,17 +286,10 @@ func StartCameraStream(camera *structs.Camera) error {
 			camera.MMutex.Lock()
 			camera.IsActive = false
 			camera.MMutex.Unlock()
-
 			if camera.FFmpeg != nil {
 				camera.FFmpeg.Process.Kill()
 			}
 		}()
-
-		h264Reader, err := h264reader.NewReader(stdout)
-		if err != nil {
-			log.Printf("❌ Błąd H.264 reader dla kamery %s: %v", camera.ID, err)
-			return
-		}
 
 		log.Printf("📹 Rozpoczynam streaming H.264 dla kamery %s", camera.ID)
 
@@ -248,12 +297,13 @@ func StartCameraStream(camera *structs.Camera) error {
 		var pps []byte
 		var frameBuffer []byte
 		var currentIsIDR bool
+		buffer := make([]byte, 0, 64*1024) // Buffer dla danych
 
 		flushFrame := func() {
 			if len(frameBuffer) == 0 {
 				return
 			}
-
+			// Dla IDR frame, dodaj SPS i PPS na początku
 			if currentIsIDR && sps != nil && pps != nil {
 				out := []byte{}
 				out = append(out, addStartCode(sps)...)
@@ -278,33 +328,70 @@ func StartCameraStream(camera *structs.Camera) error {
 			currentIsIDR = false
 		}
 
+		readBuffer := make([]byte, 4096)
 		for {
-			nal, h264Err := h264Reader.NextNAL()
-			if h264Err != nil {
-				if h264Err == io.EOF {
+			n, err := stdout.Read(readBuffer)
+			if err != nil {
+				if err == io.EOF {
 					log.Printf("📹 Koniec streamu dla kamery %s", camera.ID)
 				} else {
-					log.Printf("❌ Błąd odczytu H.264: %v", h264Err)
+					log.Printf("❌ Błąd odczytu strumienia: %v", err)
 				}
 				break
 			}
 
-			switch nal.UnitType {
-			case 7: // SPS
-				sps = nal.Data
-			case 8: // PPS
-				pps = nal.Data
-			case 5: // IDR
-				currentIsIDR = true
-				frameBuffer = append(frameBuffer, addStartCode(nal.Data)...)
-			case 1: // non-IDR slice
-				frameBuffer = append(frameBuffer, addStartCode(nal.Data)...)
-			case 9: // AUD -> koniec ramki
-				flushFrame()
-			default:
+			// Dodaj przeczytane dane do buffera
+			buffer = append(buffer, readBuffer[:n]...)
 
+			// Znajdź NAL units w buferze
+			nalUnits := findNALUnits(buffer)
+
+			// Zostaw ostatni fragment w buferze (może być niepełny)
+			if len(nalUnits) > 0 {
+				// Znajdź pozycję ostatniego NAL unit w buferze
+				lastNALStart := bytes.LastIndex(buffer, []byte{0x00, 0x00, 0x00, 0x01})
+				if lastNALStart == -1 {
+					lastNALStart = bytes.LastIndex(buffer, []byte{0x00, 0x00, 0x01})
+				}
+
+				// Przetwórz wszystkie NAL units oprócz ostatniego (niepełnego)
+				for _, nalData := range nalUnits[:len(nalUnits)-1] {
+					if len(nalData) == 0 {
+						continue
+					}
+
+					nalType := nalData[0] & 0x1F
+					switch nalType {
+					case 7: // SPS
+						sps = nalData
+						// log.Printf("📹 Otrzymano SPS dla kamery %s", camera.ID)
+					case 8: // PPS
+						pps = nalData
+						// log.Printf("📹 Otrzymano PPS dla kamery %s", camera.ID)
+					case 5: // IDR
+						currentIsIDR = true
+						frameBuffer = append([]byte{}, addStartCode(nalData)...)
+						// frameBuffer = append(frameBuffer, addStartCode(nalData)...)
+					case 1: // non-IDR slice
+						frameBuffer = append(frameBuffer, addStartCode(nalData)...)
+					case 9: // AUD - Access Unit Delimiter (koniec ramki)
+						flushFrame()
+					default: // Inne typy NAL units (np. SEI)
+						frameBuffer = append(frameBuffer, addStartCode(nalData)...)
+					}
+				}
+
+				// Zostaw fragment po ostatnim NAL unit w buferze
+				if lastNALStart >= 0 {
+					buffer = buffer[lastNALStart:]
+				} else {
+					buffer = buffer[:0]
+				}
 			}
 		}
+
+		// Flush ostatnia ramka jeśli istnieje
+		flushFrame()
 	}()
 
 	return nil
