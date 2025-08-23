@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from "react";
 import styles from './SingleCamera.module.css';
 import CameraPicker from "../../components/CameraPicker/CameraPicker";
 import StreamViewer from "../../components/StreamViewer/StreamViewer";
+import config from "../../config.js"
 
 const SingleCamera = () => {
   const [camport, setCamport] = useState(8081);
@@ -11,7 +12,7 @@ const SingleCamera = () => {
   useEffect(() => {
     const fetchCameras = async () => {
       try {
-        const response = await fetch("http://localhost:8080/api/cameras");
+        const response = await fetch(`http://${config.IPADDR}:${config.PORT}/api/cameras`);
         const data = await response.json();
         setCameras(data);
       } catch (err) {

@@ -28,6 +28,7 @@
 
 .camera_list {
   display: flex;
+  overflow-y: auto;
   flex-direction: row;
   gap: 1.5rem;
   justify-content: center;

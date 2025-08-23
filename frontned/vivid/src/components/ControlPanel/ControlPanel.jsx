@@ -1,6 +1,7 @@
 import React from "react";
 import ControlBlock from "./ControlBlock";
 import styles from "./ControlPanel.module.css"
+import config from "../../config.js"
 
 
 function ControlPanel() {
@@ -9,8 +10,7 @@ function ControlPanel() {
         <h2>Control Panel</h2> click to check if V1VID video server is alright
         <div className={styles.panel}>
             <ul className={styles.blocklist}>
-                <ControlBlock text="Server Alive-Status" address="http://localhost:8080/server-status"/>
-                {/* <ControlBlock text="Camera Alive-Status" address="http://localhost:8080/camera-status"/> */}
+                <ControlBlock text="Server Alive-Status" address={`http://${config.IPADDR}:${config.PORT}/server-status`}/>
             </ul>
         </div>
         </div>

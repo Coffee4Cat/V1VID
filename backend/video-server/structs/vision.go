@@ -18,6 +18,7 @@ type Camera struct {
 	Server   *http.Server
 	MMutex   sync.RWMutex
 	Quality  int
+	PipePath string
 }
 
 type CameraManager struct {

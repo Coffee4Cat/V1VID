@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
 import styles from './StreamViewer.module.css';
+import config from "../../config.js"
 
 
 const StreamViewer = ({monitor, camname, camport, x_size, y_size}) => {
@@ -11,7 +12,7 @@ const StreamViewer = ({monitor, camname, camport, x_size, y_size}) => {
     const startCamera = () => {
     if (started) return;
     setStarted(true);
-    const camera_ws = "ws://localhost:" + camport + "/ws";
+    const camera_ws = `ws://${config.IPADDR}:` + camport + "/ws";
     const ws = new WebSocket(camera_ws);
     wsRef.current = ws;
 
