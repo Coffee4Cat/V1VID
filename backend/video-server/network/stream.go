@@ -15,97 +15,94 @@ import (
 	"github.com/pion/webrtc/v3/pkg/media"
 )
 
+func BuildV4L2Command(device string, mode int) {
+	time.Sleep(9500 * time.Millisecond)
+	switch mode {
+	case 1: // INDOR
+		exec.Command("v4l2-ctl", "-d", device, "-c", "auto_exposure=1").Run()
+		time.Sleep(1200 * time.Millisecond)
+		exec.Command("v4l2-ctl", "-d", device, "-c", "exposure_time_absolute=250").Run()
+		time.Sleep(1200 * time.Millisecond)
+		exec.Command("v4l2-ctl", "-d", device, "-c", "white_balance_automatic=0").Run()
+		time.Sleep(1200 * time.Millisecond)
+		exec.Command("v4l2-ctl", "-d", device, "-c", "white_balance_absolute=7500").Run()
+	case 2: // CLOUDY
+		exec.Command("v4l2-ctl", "-d", device, "-c", "auto_exposure=1").Run()
+		time.Sleep(1200 * time.Millisecond)
+		exec.Command("v4l2-ctl", "-d", device, "-c", "exposure_time_absolute=30").Run()
+		time.Sleep(1200 * time.Millisecond)
+		exec.Command("v4l2-ctl", "-d", device, "-c", "white_balance_automatic=0").Run()
+		time.Sleep(1200 * time.Millisecond)
+		exec.Command("v4l2-ctl", "-d", device, "-c", "white_balance_absolute=8000").Run()
+	case 3: // SUNNY
+		exec.Command("v4l2-ctl", "-d", device, "-c", "auto_exposure=1").Run()
+		time.Sleep(1000 * time.Millisecond)
+		exec.Command("v4l2-ctl", "-d", device, "-c", "exposure_time_absolute=15").Run()
+		time.Sleep(1000 * time.Millisecond)
+		exec.Command("v4l2-ctl", "-d", device, "-c", "white_balance_automatic=0").Run()
+		time.Sleep(1000 * time.Millisecond)
+		exec.Command("v4l2-ctl", "-d", device, "-c", "white_balance_absolute=8000").Run()
+	}
+
+}
+
 func BuildFFmpegCommand(device string, mode int) *exec.Cmd {
 	var args []string
-	if mode == 1 {
-
+	// 800x600 OR 1280x720
+	switch mode {
+	case 1: // INDOR
 		args = []string{
-			"-f", "v4l2",
-			"-input_format", "mjpeg",
-			"-framerate", "30",
-			"-video_size", "1024x576",
-			"-i", device,
-			"-c:v", "libx264",
-			"-preset", "fast",
-			"-profile:v", "baseline",
-			"-tune", "zerolatency",
-			"-pix_fmt", "yuv420p",
-			"-r", "30",
-			"-b:v", "4M",
-			"-maxrate", "5M",
-			"-bufsize", "8M",
-			"-g", "30",
-			"-x264opts", "keyint=30:no-scenecut:aud",
-			"-fflags", "nobuffer",
-			"-flags", "low_delay",
-			"-f", "h264",
-			"-",
+			"v4l2src", "device=" + device,
+			"do-timestamp=true",
+			"io-mode=2",
+			"!", "video/x-h264,width=1280,height=720,framerate=30/1",
+			"!", "h264parse",
+			"config-interval=1",
+			"disable-passthrough=true",
+			"!", "queue",
+			"max-size-time=33333333",
+			"leaky=upstream",
+			"!", "filesink", "location=/dev/stdout",
+			"sync=false",
+			"async=false",
+			"buffer-mode=unbuffered",
 		}
-	} else {
+	case 2: // CLOUDY
 		args = []string{
-			"-f", "v4l2",
-			"-input_format", "mjpeg",
-			"-framerate", "30",
-			"-video_size", "640x360",
-			"-i", device,
-			"-c:v", "libx264",
-			"-preset", "fast",
-			"-profile:v", "baseline",
-			"-tune", "zerolatency",
-			"-pix_fmt", "yuv420p",
-			"-r", "30",
-			"-b:v", "4M",
-			"-maxrate", "5M",
-			"-bufsize", "8M",
-			"-g", "30",
-			"-x264opts", "keyint=30:no-scenecut:aud",
-			"-fflags", "nobuffer",
-			"-flags", "low_delay",
-			"-f", "h264",
-			"-",
+			"v4l2src", "device=" + device,
+			"do-timestamp=true",
+			"io-mode=2",
+			"!", "video/x-h264,width=1280,height=720,framerate=30/1",
+			"!", "h264parse",
+			"config-interval=1",
+			"disable-passthrough=true",
+			"!", "queue",
+			"max-size-time=33333333",
+			"leaky=upstream",
+			"!", "filesink", "location=/dev/stdout",
+			"sync=false",
+			"async=false",
+			"buffer-mode=unbuffered",
 		}
+	case 3: // SUNNY
+		args = []string{
+			"v4l2src", "device=" + device,
+			"do-timestamp=true",
+			"io-mode=2",
+			"!", "video/x-h264,width=1280,height=720,framerate=30/1",
+			"!", "h264parse",
+			"config-interval=1",
+			"disable-passthrough=true",
+			"!", "queue",
+			"max-size-time=33333333",
+			"leaky=upstream",
+			"!", "filesink", "location=/dev/stdout",
+			"sync=false",
+			"async=false",
+			"buffer-mode=unbuffered",
+		}
+
 	}
-
-	// DOBRE
-	// args = []string{
-	// 	"v4l2src", "device=/dev/video4", "do-timestamp=true", "num-buffers=-1", "io-mode=2",
-	// 	"!", "video/x-h264,width=1280,height=720,framerate=30/1",
-	// 	"!", "h264parse", "config-interval=1", "disable-passthrough=true",
-	// 	"!", "queue", "max-size-buffers=1", "leaky=downstream",
-	// 	"!", "filesink", "location=/dev/stdout", "sync=false", "async=true", "buffer-mode=0",
-	// }
-
-	args = []string{
-		"v4l2src", "device=/dev/video4",
-		"do-timestamp=true",
-		"io-mode=2",
-		"!", "video/x-h264,width=1280,height=720,framerate=30/1",
-		"!", "h264parse",
-		"config-interval=1", // Częściej wysyłaj SPS/PPS
-		"disable-passthrough=true",
-		"!", "queue",
-		"max-size-time=33333333", // ~1 frame at 30fps (w nanosekundach)
-		"leaky=upstream",         // Zrzucaj stare ramki, nie nowe
-		"!", "filesink", "location=/dev/stdout",
-		"sync=false",
-		"async=false",
-		"buffer-mode=unbuffered", // Zmiana z 0 na unbuffered
-	}
-
-	// 	args = []string{
-	// 	// "v4l2src", "device=/dev/video4",
-	// 	// "!", "video/x-h264,width=1280,height=720,framerate=30/1",
-	// 	// "!", "filesink", "location=/dev/stdout", "sync=false",
-	// }
-
-	// args = []string{
-	// 	"v4l2src", "device=device=/dev/video4", "do-timestamp=true", "io-mode=2",
-	// 	"!", "video/x-h264,width=1280,height=720,framerate=30/1",
-	// 	"!", "h264parse", "config-interval=-1",
-	// 	"!", "rtph264pay", "pt=96", "config-interval=-1",
-	// 	"!", "rtph264depay",
-	// 	"!", "filesink", "location=/dev/stdout", "sync=false", "buffer-mode=unbuffered",
-	// }
 
 	return exec.Command("gst-launch-1.0", args...)
 
@@ -208,6 +205,7 @@ func HandleCameraWebSocket(w http.ResponseWriter, r *http.Request, camera *struc
 		}
 	}
 }
+
 func addStartCode(nal []byte) []byte {
 	return append([]byte{0x00, 0x00, 0x00, 0x01}, nal...)
 }
@@ -275,8 +273,9 @@ func StartCameraStream(camera *structs.Camera) error {
 	}
 
 	if err := ffmpegCmd.Start(); err != nil {
-		return fmt.Errorf("błąd uruchomienia FFmpeg: %v", err)
+		return fmt.Errorf("błąd uruchomienia GSTREAMER: %v", err)
 	}
+	BuildV4L2Command(camera.Device, camera.Quality)
 
 	camera.FFmpeg = ffmpegCmd
 	camera.IsActive = true

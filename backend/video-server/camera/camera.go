@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"os/exec"
+	"path/filepath"
+	"syscall"
 	"vivid/network"
 	"vivid/structs"
 
@@ -15,7 +18,8 @@ func detectCameras() []string {
 	var cameras []string
 
 	for i := 0; i < 25; i++ {
-		if i == 0 || i == 2 || i == 6 || i == 10 || i == 14 || i == 18 || i == 22 {
+		// if i == 0 || i == 2 || i == 6 || i == 10 || i == 14 || i == 18 || i == 22 {
+		if i == 2 || i == 6 || i == 10 || i == 14 || i == 18 {
 			device := fmt.Sprintf("/dev/video%d", i)
 			if exec.Command("ls", device).Run() == nil {
 				cameras = append(cameras, device)
@@ -26,25 +30,47 @@ func detectCameras() []string {
 	return cameras
 }
 
+func createNamedPipe(cameraID string) (string, error) {
+	pipeDir := "/tmp/camera_pipes"
+	if err := os.MkdirAll(pipeDir, 0755); err != nil {
+		return "", fmt.Errorf("błąd tworzenia katalogu pipes: %v", err)
+	}
+
+	pipePath := filepath.Join(pipeDir, fmt.Sprintf("camera_%s.pipe", cameraID))
+
+	// Usuń pipe jeśli już istnieje
+	os.Remove(pipePath)
+
+	// Utwórz named pipe
+	if err := syscall.Mkfifo(pipePath, 0644); err != nil {
+		return "", fmt.Errorf("błąd tworzenia named pipe: %v", err)
+	}
+
+	return pipePath, nil
+}
+
 func InitializeCameras() {
 	devices := detectCameras()
 
 	for i, device := range devices {
 		cameraID := fmt.Sprintf("camera_%d", i)
 		port := structs.BasePort + i
+		pipepath, _ := createNamedPipe(cameraID)
 
 		camera := &structs.Camera{
 			ID:       cameraID,
 			Device:   device,
 			Port:     port,
 			IsActive: false,
+			Quality:  1,
+			PipePath: pipepath,
 		}
 
 		structs.Manager.MMutex.Lock()
 		structs.Manager.Cameras[cameraID] = camera
 		structs.Manager.MMutex.Unlock()
 
-		log.Printf("✅ Zarejestrowano kamerę: %s (urządzenie: %s, port: %d)", cameraID, device, port)
+		log.Printf("✅ Zarejestrowano kamerę: %s (urządzenie: %s, port: %d, pipepath: %s)", cameraID, device, port, pipepath)
 	}
 }
 
@@ -67,12 +93,16 @@ func startCameraServer(camera *structs.Camera, config webrtc.Configuration) {
 		network.HandleCameraStatus(w, r, camera)
 	})
 
-	mux.HandleFunc("/api/goodquality", func(w http.ResponseWriter, r *http.Request) {
-		network.HandleGoodQualitySpecificCamera(w, r)
+	mux.HandleFunc("/api/indorquality", func(w http.ResponseWriter, r *http.Request) {
+		network.HandleIndorQualitySpecificCamera(w, r)
 	})
 
-	mux.HandleFunc("/api/badquality", func(w http.ResponseWriter, r *http.Request) {
-		network.HandleBadQualitySpecificCamera(w, r)
+	mux.HandleFunc("/api/cloudyquality", func(w http.ResponseWriter, r *http.Request) {
+		network.HandleCloudyQualitySpecificCamera(w, r)
+	})
+
+	mux.HandleFunc("/api/sunnyquality", func(w http.ResponseWriter, r *http.Request) {
+		network.HandleSunnyQualitySpecificCamera(w, r)
 	})
 
 	mux.Handle("/", http.FileServer(http.Dir("./static/")))

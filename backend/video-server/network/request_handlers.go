@@ -15,8 +15,9 @@ func SetupMainAPIServer() {
 	mux.HandleFunc("/api/cameras", HandleCamerasAPI)
 	mux.HandleFunc("/api/camera/start/", HandleStartCamera)
 	mux.HandleFunc("/api/camera/stop/", HandleStopCamera)
-	mux.HandleFunc("/api/camera/goodquality/", HandleGoodQualitySpecificCamera)
-	mux.HandleFunc("/api/camera/badquality/", HandleBadQualitySpecificCamera)
+	mux.HandleFunc("/api/camera/indorquality/", HandleIndorQualitySpecificCamera)
+	mux.HandleFunc("/api/camera/cloudyquality/", HandleCloudyQualitySpecificCamera)
+	mux.HandleFunc("/api/camera/sunnyquality/", HandleSunnyQualitySpecificCamera)
 
 	mux.Handle("/", http.FileServer(http.Dir("./static/")))
 
@@ -63,9 +64,9 @@ func HandleStopSpecificCamera(w http.ResponseWriter, r *http.Request, camera *st
 	log.Printf("⏹️ Zatrzymano kamerę %s", camera.ID)
 }
 
-func HandleGoodQualitySpecificCamera(w http.ResponseWriter, r *http.Request) {
+func HandleIndorQualitySpecificCamera(w http.ResponseWriter, r *http.Request) {
 	structs.SetCORSHeaders(w)
-	cameraID := r.URL.Path[len("/api/camera/goodquality/"):]
+	cameraID := r.URL.Path[len("/api/camera/indorquality/"):]
 	structs.Manager.MMutex.RLock()
 	camera, _ := structs.Manager.Cameras[cameraID]
 	camera.Quality = 1
@@ -73,20 +74,33 @@ func HandleGoodQualitySpecificCamera(w http.ResponseWriter, r *http.Request) {
 
 	resp := structs.CameraStatusResponse{Status: true, CameraNum: 1}
 	json.NewEncoder(w).Encode(resp)
-	log.Printf("Kamera %s ustawiona w trybie PREMIUM", camera.ID)
+	log.Printf("Kamera %s ustawiona w trybie INDOR", camera.ID)
 }
 
-func HandleBadQualitySpecificCamera(w http.ResponseWriter, r *http.Request) {
+func HandleCloudyQualitySpecificCamera(w http.ResponseWriter, r *http.Request) {
 	structs.SetCORSHeaders(w)
-	cameraID := r.URL.Path[len("/api/camera/badquality/"):]
+	cameraID := r.URL.Path[len("/api/camera/cloudyquality/"):]
 	structs.Manager.MMutex.RLock()
 	camera, _ := structs.Manager.Cameras[cameraID]
-	camera.Quality = 0
+	camera.Quality = 2
 	structs.Manager.MMutex.RUnlock()
 
 	resp := structs.CameraStatusResponse{Status: true, CameraNum: 1}
 	json.NewEncoder(w).Encode(resp)
-	log.Printf("Kamera %s ustawiona w trybie FAST", camera.ID)
+	log.Printf("Kamera %s ustawiona w trybie CLOUDY", camera.ID)
+}
+
+func HandleSunnyQualitySpecificCamera(w http.ResponseWriter, r *http.Request) {
+	structs.SetCORSHeaders(w)
+	cameraID := r.URL.Path[len("/api/camera/sunnyquality/"):]
+	structs.Manager.MMutex.RLock()
+	camera, _ := structs.Manager.Cameras[cameraID]
+	camera.Quality = 3
+	structs.Manager.MMutex.RUnlock()
+
+	resp := structs.CameraStatusResponse{Status: true, CameraNum: 1}
+	json.NewEncoder(w).Encode(resp)
+	log.Printf("Kamera %s ustawiona w trybie SUNNY", camera.ID)
 }
 
 func HandleCameraStatus(w http.ResponseWriter, r *http.Request, camera *structs.Camera) {

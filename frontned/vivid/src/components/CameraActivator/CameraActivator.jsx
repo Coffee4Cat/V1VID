@@ -5,6 +5,25 @@ import styles from "./CameraActivator.module.css"
 function CameraActivator({text, address, camera_id, entry_status, entry_quality}) {
     const [enable, setEnable] = useState(entry_status);
     const [quality, setQuality] = useState(entry_quality);
+
+
+    const qualityMap = {
+        enabled: {
+            1: styles.enabledquality1,
+            2: styles.enabledquality2,
+            3: styles.enabledquality3,
+        },
+        disabled: {
+            1: styles.disabledquality1,
+            2: styles.disabledquality2,
+            3: styles.disabledquality3,
+        },
+        title: {
+            1: "INDOR",
+            2: "CLOUDY",
+            3: "SUNNY",
+        },
+    };
     
     const handleClick = async () => {
         try {
@@ -29,39 +48,53 @@ function CameraActivator({text, address, camera_id, entry_status, entry_quality}
         }
     };
 
-    const handleGoodQuality = async () => {
+    const handleIndorQuality = async () => {
         if (!enable) {
             try {
                 let addr;
-                addr = address + "/goodquality/" + camera_id;
+                addr = address + "/indorquality/" + camera_id;
                 const response = await fetch(addr, {method: "POST"});
                 const data = await response.json();
-                setQuality(true);
+                setQuality(1);
             } catch (error) {}
         }
     };
     
-    const handleBadQuality = async () => {
+    const handleCloudyQuality = async () => {
         if (!enable) {
             try {
                 let addr;
-                addr = address + "/badquality/" + camera_id;
+                addr = address + "/cloudyquality/" + camera_id;
                 const response = await fetch(addr, {method: "POST"});
                 const data = await response.json();
-                setQuality(false);
+                setQuality(2);
             } catch (error) {}
         }
     };
+
+    const handleSunnyQuality = async () => {
+        if (!enable) {
+            try {
+                let addr;
+                addr = address + "/sunnyquality/" + camera_id;
+                const response = await fetch(addr, {method: "POST"});
+                const data = await response.json();
+                setQuality(3);
+            } catch (error) {}
+        }
+    };
+    
     
     
     return (
-        <div className={`${styles.controlblock} ${enable ? (quality ? styles.enabledquality1 : styles.enabledquality2) : (quality ? styles.disabledquality1 : styles.disabledquality2)}`}>
+        <div className={`${styles.controlblock} ${enable ? qualityMap.enabled[quality] : qualityMap.disabled[quality]}`}>
             <p>{text}</p>
             <button className={styles.button} onClick={handleClick}>{enable ? "TURN OFF" : "TURN ON"}</button>
-            <p>MODE {quality ? "PREMIUM " : "FAST"}</p>
+            <p>MODE {qualityMap.title[quality]}</p>
             <ul className={styles.modelist}>
-                <li><button className={styles.qbutton1} onClick={handleGoodQuality}>Premium</button></li>
-                <li><button className={styles.qbutton2} onClick={handleBadQuality}>Fast</button></li>
+                <li><button className={styles.qbutton1} onClick={handleIndorQuality}>INDOR</button></li>
+                <li><button className={styles.qbutton2} onClick={handleCloudyQuality}>CLOUDY</button></li>
+                <li><button className={styles.qbutton3} onClick={handleSunnyQuality}>SUNNY</button></li>
             </ul>
         </div>
     );

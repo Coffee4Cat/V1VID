@@ -17,7 +17,7 @@ const CameraPicker = ({title, cameras, setCamport, setCamname}) => {
                 {cameras.map((camera) => (
                 <li key={camera.port}>
                     <button className={ camera.isActive ? styles.button_active : styles.button_inactive} onClick={() => { if (camera.isActive) {setCamport(camera.port); setCamname(camera.id); console.log(camera.port)}}}>
-                    <strong>VIDEO ({camera.id})</strong>
+                    <strong>({camera.id})</strong>
                     </button>
                 </li>
                 ))}
