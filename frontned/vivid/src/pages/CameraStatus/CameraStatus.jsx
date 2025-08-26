@@ -34,6 +34,7 @@ function CameraStatus() {
 
       <div className={styles.description}>
         <p>Check telemetry data related to cameras</p>
+        <p className={styles.rtfm}>TURN ON | WAIT for TURN ON response | Pick Mode</p>
         <p>Camera count: {cameras.length}</p>
       </div>
 
