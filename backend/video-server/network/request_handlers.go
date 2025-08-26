@@ -70,6 +70,7 @@ func HandleIndorQualitySpecificCamera(w http.ResponseWriter, r *http.Request) {
 	structs.Manager.MMutex.RLock()
 	camera, _ := structs.Manager.Cameras[cameraID]
 	camera.Quality = 1
+	BuildV4L2Command(camera.Device, camera.Quality)
 	structs.Manager.MMutex.RUnlock()
 
 	resp := structs.CameraStatusResponse{Status: true, CameraNum: 1}
@@ -83,6 +84,7 @@ func HandleCloudyQualitySpecificCamera(w http.ResponseWriter, r *http.Request) {
 	structs.Manager.MMutex.RLock()
 	camera, _ := structs.Manager.Cameras[cameraID]
 	camera.Quality = 2
+	BuildV4L2Command(camera.Device, camera.Quality)
 	structs.Manager.MMutex.RUnlock()
 
 	resp := structs.CameraStatusResponse{Status: true, CameraNum: 1}
@@ -96,6 +98,7 @@ func HandleSunnyQualitySpecificCamera(w http.ResponseWriter, r *http.Request) {
 	structs.Manager.MMutex.RLock()
 	camera, _ := structs.Manager.Cameras[cameraID]
 	camera.Quality = 3
+	BuildV4L2Command(camera.Device, camera.Quality)
 	structs.Manager.MMutex.RUnlock()
 
 	resp := structs.CameraStatusResponse{Status: true, CameraNum: 1}

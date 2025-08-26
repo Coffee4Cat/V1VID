@@ -49,39 +49,33 @@ function CameraActivator({text, address, camera_id, entry_status, entry_quality}
     };
 
     const handleIndorQuality = async () => {
-        if (!enable) {
-            try {
-                let addr;
-                addr = address + "/indorquality/" + camera_id;
-                const response = await fetch(addr, {method: "POST"});
-                const data = await response.json();
-                setQuality(1);
-            } catch (error) {}
-        }
+        try {
+            let addr;
+            addr = address + "/indorquality/" + camera_id;
+            const response = await fetch(addr, {method: "POST"});
+            const data = await response.json();
+            setQuality(1);
+        } catch (error) {}
     };
     
     const handleCloudyQuality = async () => {
-        if (!enable) {
-            try {
-                let addr;
-                addr = address + "/cloudyquality/" + camera_id;
-                const response = await fetch(addr, {method: "POST"});
-                const data = await response.json();
-                setQuality(2);
-            } catch (error) {}
-        }
+        try {
+            let addr;
+            addr = address + "/cloudyquality/" + camera_id;
+            const response = await fetch(addr, {method: "POST"});
+            const data = await response.json();
+            setQuality(2);
+        } catch (error) {}
     };
 
     const handleSunnyQuality = async () => {
-        if (!enable) {
-            try {
-                let addr;
-                addr = address + "/sunnyquality/" + camera_id;
-                const response = await fetch(addr, {method: "POST"});
-                const data = await response.json();
-                setQuality(3);
-            } catch (error) {}
-        }
+        try {
+            let addr;
+            addr = address + "/sunnyquality/" + camera_id;
+            const response = await fetch(addr, {method: "POST"});
+            const data = await response.json();
+            setQuality(3);
+        } catch (error) {}
     };
     
     

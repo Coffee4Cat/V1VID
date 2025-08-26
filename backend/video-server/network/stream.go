@@ -16,31 +16,30 @@ import (
 )
 
 func BuildV4L2Command(device string, mode int) {
-	time.Sleep(9500 * time.Millisecond)
 	switch mode {
 	case 1: // INDOR
 		exec.Command("v4l2-ctl", "-d", device, "-c", "auto_exposure=1").Run()
-		time.Sleep(1200 * time.Millisecond)
+		time.Sleep(2200 * time.Millisecond)
 		exec.Command("v4l2-ctl", "-d", device, "-c", "exposure_time_absolute=250").Run()
-		time.Sleep(1200 * time.Millisecond)
+		time.Sleep(2200 * time.Millisecond)
 		exec.Command("v4l2-ctl", "-d", device, "-c", "white_balance_automatic=0").Run()
-		time.Sleep(1200 * time.Millisecond)
+		time.Sleep(2200 * time.Millisecond)
 		exec.Command("v4l2-ctl", "-d", device, "-c", "white_balance_absolute=7500").Run()
 	case 2: // CLOUDY
 		exec.Command("v4l2-ctl", "-d", device, "-c", "auto_exposure=1").Run()
-		time.Sleep(1200 * time.Millisecond)
-		exec.Command("v4l2-ctl", "-d", device, "-c", "exposure_time_absolute=30").Run()
-		time.Sleep(1200 * time.Millisecond)
+		time.Sleep(2200 * time.Millisecond)
+		exec.Command("v4l2-ctl", "-d", device, "-c", "exposure_time_absolute=50").Run()
+		time.Sleep(2200 * time.Millisecond)
 		exec.Command("v4l2-ctl", "-d", device, "-c", "white_balance_automatic=0").Run()
-		time.Sleep(1200 * time.Millisecond)
+		time.Sleep(2200 * time.Millisecond)
 		exec.Command("v4l2-ctl", "-d", device, "-c", "white_balance_absolute=8000").Run()
 	case 3: // SUNNY
 		exec.Command("v4l2-ctl", "-d", device, "-c", "auto_exposure=1").Run()
-		time.Sleep(1000 * time.Millisecond)
-		exec.Command("v4l2-ctl", "-d", device, "-c", "exposure_time_absolute=15").Run()
-		time.Sleep(1000 * time.Millisecond)
+		time.Sleep(2200 * time.Millisecond)
+		exec.Command("v4l2-ctl", "-d", device, "-c", "exposure_time_absolute=20").Run()
+		time.Sleep(2200 * time.Millisecond)
 		exec.Command("v4l2-ctl", "-d", device, "-c", "white_balance_automatic=0").Run()
-		time.Sleep(1000 * time.Millisecond)
+		time.Sleep(2200 * time.Millisecond)
 		exec.Command("v4l2-ctl", "-d", device, "-c", "white_balance_absolute=8000").Run()
 	}
 
@@ -275,7 +274,8 @@ func StartCameraStream(camera *structs.Camera) error {
 	if err := ffmpegCmd.Start(); err != nil {
 		return fmt.Errorf("błąd uruchomienia GSTREAMER: %v", err)
 	}
-	BuildV4L2Command(camera.Device, camera.Quality)
+	time.Sleep(10000 * time.Millisecond)
+	// BuildV4L2Command(camera.Device, camera.Quality)
 
 	camera.FFmpeg = ffmpegCmd
 	camera.IsActive = true
