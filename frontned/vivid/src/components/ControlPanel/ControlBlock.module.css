@@ -3,7 +3,7 @@
   font-size: 2vh;
   min-height: 300px;
   border-radius: 8px;
-  background-color: #333; /* domyślne tło */
+  background-color: #333;
   color: white;
   transition: background-color 0.9s ease;
 }
@@ -17,7 +17,7 @@
 
 
 
-/* well... it looks terrible rn */
+
 .diode {
   display: inline-block;
   width: 150px;

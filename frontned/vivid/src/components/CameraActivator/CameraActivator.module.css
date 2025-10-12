@@ -4,7 +4,7 @@
   min-height: 150px;
   width: 150px;
   border-radius: 8px;
-  background-color: #333; /* domyślne tło */
+  background-color: #333;
   color: white;
   transition: background-color 0.9s ease;
 }
@@ -52,7 +52,6 @@
 
 
 
-/* well... it looks terrible rn */
 .diode {
   display: inline-block;
   width: 150px;
@@ -79,13 +78,13 @@
 
 
 .modelist {
-  background-color: #ccc; /* szare tło */
-  padding: 10px;           /* odstęp wewnętrzny */
-  border-radius: 8px;      /* zaokrąglone rogi */
-  display: flexbox;           /* przyciski w jednym wierszu */
-  gap: 10px;               /* odstęp między przyciskami */
-  list-style: none;        /* usuwa standardowe wypunktowanie */
-  margin: 0;               /* usuwa domyślny margines ul */
+  background-color: #ccc;
+  padding: 10px;
+  border-radius: 8px;
+  display: flexbox;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
 }
 
 .qbutton1 {

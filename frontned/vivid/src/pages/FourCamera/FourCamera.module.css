@@ -63,11 +63,11 @@
 
 .streamgrid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr); /* 2 kolumny */
-  grid-template-rows: repeat(2, 1fr);    /* 2 wiersze */
-  gap: 10px;                             /* odstęp między wideo */
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 10px;
   margin-top: 20px;
-  justify-items: center;                 /* wycentrowanie wideo w komórkach */
+  justify-items: center;
   align-items: center;
   max-width: 1280px;
   margin: 0 auto;
