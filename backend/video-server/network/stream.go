@@ -110,18 +110,18 @@ func BuildFFmpegCommand(device string, mode int) *exec.Cmd {
 func HandleCameraWebSocket(w http.ResponseWriter, r *http.Request, camera *structs.Camera, config webrtc.Configuration) {
 	conn, err := structs.Upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("❌ Błąd WebSocket upgrade dla kamery %s: %v", camera.ID, err)
+		log.Printf("[ERROR] Websocket error for camera %s: %v", camera.ID, err)
 		return
 	}
 
 	safeConn := structs.NewSafeWebSocketConn(conn)
 	defer safeConn.Close()
 
-	log.Printf("🔌 Nowe połączenie WebSocket dla kamery %s", camera.ID)
+	log.Printf("New connection for camera %s", camera.ID)
 
 	peerConnection, err := webrtc.NewPeerConnection(config)
 	if err != nil {
-		log.Printf("❌ Błąd PeerConnection dla kamery %s: %v", camera.ID, err)
+		log.Printf("PeerConnection error for camera %s: %v", camera.ID, err)
 		return
 	}
 	defer peerConnection.Close()
@@ -129,14 +129,13 @@ func HandleCameraWebSocket(w http.ResponseWriter, r *http.Request, camera *struc
 	camera.MMutex.RLock()
 	if camera.IsActive && camera.Track != nil {
 		if _, err := peerConnection.AddTrack(camera.Track); err != nil {
-			log.Printf("❌ Błąd dodawania track kamery %s: %v", camera.ID, err)
+			log.Printf("[ERROR] PeerConnection failure for camera %s: %v", camera.ID, err)
 		} else {
-			log.Printf("✅ Dodano track kamery %s do PeerConnection", camera.ID)
+			log.Printf("Added Camera %s to PeerConnection", camera.ID)
 		}
 	}
 	camera.MMutex.RUnlock()
 
-	// TUTAJ JEST POPRAWKA - używamy SafeWebSocketConn zamiast bezpośredniego conn.WriteJSON
 	peerConnection.OnICECandidate(func(candidate *webrtc.ICECandidate) {
 		if candidate == nil {
 			return
@@ -145,12 +144,11 @@ func HandleCameraWebSocket(w http.ResponseWriter, r *http.Request, camera *struc
 			Type: "ice-candidate",
 			Data: candidate.ToJSON(),
 		}
-		// Bezpieczne wysyłanie przez kanał
 		safeConn.SendMessage(candidateMsg)
 	})
 
 	peerConnection.OnConnectionStateChange(func(state webrtc.PeerConnectionState) {
-		log.Printf("🔄 Stan WebRTC dla kamery %s: %s", camera.ID, state.String())
+		log.Printf("State of Camera %s: %s", camera.ID, state.String())
 	})
 
 	conn.SetPongHandler(func(string) error {
@@ -162,31 +160,28 @@ func HandleCameraWebSocket(w http.ResponseWriter, r *http.Request, camera *struc
 		var msg structs.SignalingMessage
 		conn.SetReadDeadline(time.Now().Add(60 * time.Second))
 		if err := conn.ReadJSON(&msg); err != nil {
-			log.Printf("❌ Błąd WebSocket dla kamery %s: %v", camera.ID, err)
+			log.Printf("[ERROR] Websocket error for camera %s: %v", camera.ID, err)
 			break
 		}
-
-		log.Printf("📨 Otrzymano dla kamery %s: %s", camera.ID, msg.Type)
 
 		switch msg.Type {
 		case "viewer":
 			offer, err := peerConnection.CreateOffer(nil)
 			if err != nil {
-				log.Printf("❌ Błąd create offer dla kamery %s: %v", camera.ID, err)
+				log.Printf("[ERROR] Offer failure for camera %s: %v", camera.ID, err)
 				continue
 			}
 
 			if err := peerConnection.SetLocalDescription(offer); err != nil {
-				log.Printf("❌ Błąd set local description dla kamery %s: %v", camera.ID, err)
+				log.Printf("[ERROR] Local description failure for camera %s: %v", camera.ID, err)
 				continue
 			}
 
 			offerMsg := structs.SignalingMessage{Type: "offer", Data: offer}
-			// POPRAWKA - używamy safeConn zamiast conn.WriteJSON
 			if err := safeConn.SendMessage(offerMsg); err != nil {
-				log.Printf("❌ Błąd wysyłania offer dla kamery %s: %v", camera.ID, err)
+				log.Printf("[ERROR] Offer failure for camera %s: %v", camera.ID, err)
 			} else {
-				log.Printf("✅ Wysłano offer do viewera dla kamery %s", camera.ID)
+				log.Printf("Camera %s OFFER", camera.ID)
 			}
 
 		case "answer":
@@ -194,7 +189,7 @@ func HandleCameraWebSocket(w http.ResponseWriter, r *http.Request, camera *struc
 			var answer webrtc.SessionDescription
 			json.Unmarshal(answerData, &answer)
 			peerConnection.SetRemoteDescription(answer)
-			log.Printf("✅ Ustawiono answer dla kamery %s", camera.ID)
+			log.Printf("Camera %s ANSWER", camera.ID)
 
 		case "ice-candidate":
 			candidateData, _ := json.Marshal(msg.Data)
@@ -209,35 +204,31 @@ func addStartCode(nal []byte) []byte {
 	return append([]byte{0x00, 0x00, 0x00, 0x01}, nal...)
 }
 
-// Funkcja do znajdowania NAL units w surowym strumieniu H.264
 func findNALUnits(data []byte) [][]byte {
 	var nalUnits [][]byte
 	start := 0
 
 	for i := 0; i < len(data)-3; i++ {
-		// Szukamy start code: 0x00 0x00 0x00 0x01 lub 0x00 0x00 0x01
+		//start code: 0x00 0x00 0x00 0x01 lub 0x00 0x00 0x01
 		if data[i] == 0x00 && data[i+1] == 0x00 {
 			if (i+3 < len(data) && data[i+2] == 0x00 && data[i+3] == 0x01) ||
 				(data[i+2] == 0x01) {
 
-				// Jeśli to nie pierwszy NAL unit, zapisz poprzedni
 				if start < i {
 					nalUnits = append(nalUnits, data[start:i])
 				}
 
-				// Ustaw nowy start
 				if data[i+2] == 0x00 && data[i+3] == 0x01 {
-					start = i + 4 // 4-byte start code
+					start = i + 4
 					i += 3
 				} else {
-					start = i + 3 // 3-byte start code
+					start = i + 3
 					i += 2
 				}
 			}
 		}
 	}
 
-	// Dodaj ostatni NAL unit
 	if start < len(data) {
 		nalUnits = append(nalUnits, data[start:])
 	}
@@ -250,7 +241,7 @@ func StartCameraStream(camera *structs.Camera) error {
 	defer camera.MMutex.Unlock()
 
 	if camera.IsActive {
-		return fmt.Errorf("kamera %s już jest aktywna", camera.ID)
+		return fmt.Errorf("Camera %s is active", camera.ID)
 	}
 
 	h264Track, err := webrtc.NewTrackLocalStaticSample(
@@ -259,20 +250,19 @@ func StartCameraStream(camera *structs.Camera) error {
 		camera.ID,
 	)
 	if err != nil {
-		return fmt.Errorf("błąd tworzenia H.264 track: %v", err)
+		return fmt.Errorf("[ERROR] %v", err)
 	}
 	camera.Track = h264Track
 
 	ffmpegCmd := BuildFFmpegCommand(camera.Device, camera.Quality)
-	log.Printf("🚀 Uruchamiam FFmpeg dla kamery %s: %s", camera.ID, ffmpegCmd.String())
 
 	stdout, err := ffmpegCmd.StdoutPipe()
 	if err != nil {
-		return fmt.Errorf("błąd stdout pipe: %v", err)
+		return fmt.Errorf("[ERROR] stdoutpipe: %v", err)
 	}
 
 	if err := ffmpegCmd.Start(); err != nil {
-		return fmt.Errorf("błąd uruchomienia GSTREAMER: %v", err)
+		return fmt.Errorf("[ERROR] GSTREAMER failure: %v", err)
 	}
 	time.Sleep(10000 * time.Millisecond)
 	// BuildV4L2Command(camera.Device, camera.Quality)
@@ -290,19 +280,19 @@ func StartCameraStream(camera *structs.Camera) error {
 			}
 		}()
 
-		log.Printf("📹 Rozpoczynam streaming H.264 dla kamery %s", camera.ID)
+		log.Printf("[STREAM] Camera %s", camera.ID)
 
 		var sps []byte
 		var pps []byte
 		var frameBuffer []byte
 		var currentIsIDR bool
-		buffer := make([]byte, 0, 64*1024) // Buffer dla danych
+		buffer := make([]byte, 0, 64*1024)
 
 		flushFrame := func() {
 			if len(frameBuffer) == 0 {
 				return
 			}
-			// Dla IDR frame, dodaj SPS i PPS na początku
+
 			if currentIsIDR && sps != nil && pps != nil {
 				out := []byte{}
 				out = append(out, addStartCode(sps)...)
@@ -317,10 +307,9 @@ func StartCameraStream(camera *structs.Camera) error {
 			}
 			if err := h264Track.WriteSample(sample); err != nil {
 				if err == io.ErrClosedPipe {
-					log.Printf("📹 Track zamknięty dla kamery %s", camera.ID)
+					log.Printf("[DEVICE] Track closed for camera %s", camera.ID)
 					return
 				}
-				log.Printf("❌ Błąd wysyłania sample: %v", err)
 			}
 
 			frameBuffer = nil
@@ -332,28 +321,21 @@ func StartCameraStream(camera *structs.Camera) error {
 			n, err := stdout.Read(readBuffer)
 			if err != nil {
 				if err == io.EOF {
-					log.Printf("📹 Koniec streamu dla kamery %s", camera.ID)
-				} else {
-					log.Printf("❌ Błąd odczytu strumienia: %v", err)
+					log.Printf("[STREAM] End of Stream for camera %s", camera.ID)
 				}
 				break
 			}
 
-			// Dodaj przeczytane dane do buffera
 			buffer = append(buffer, readBuffer[:n]...)
 
-			// Znajdź NAL units w buferze
 			nalUnits := findNALUnits(buffer)
 
-			// Zostaw ostatni fragment w buferze (może być niepełny)
 			if len(nalUnits) > 0 {
-				// Znajdź pozycję ostatniego NAL unit w buferze
 				lastNALStart := bytes.LastIndex(buffer, []byte{0x00, 0x00, 0x00, 0x01})
 				if lastNALStart == -1 {
 					lastNALStart = bytes.LastIndex(buffer, []byte{0x00, 0x00, 0x01})
 				}
 
-				// Przetwórz wszystkie NAL units oprócz ostatniego (niepełnego)
 				for _, nalData := range nalUnits[:len(nalUnits)-1] {
 					if len(nalData) == 0 {
 						continue
@@ -363,24 +345,21 @@ func StartCameraStream(camera *structs.Camera) error {
 					switch nalType {
 					case 7: // SPS
 						sps = nalData
-						// log.Printf("📹 Otrzymano SPS dla kamery %s", camera.ID)
 					case 8: // PPS
 						pps = nalData
-						// log.Printf("📹 Otrzymano PPS dla kamery %s", camera.ID)
 					case 5: // IDR
 						currentIsIDR = true
 						frameBuffer = append([]byte{}, addStartCode(nalData)...)
 						// frameBuffer = append(frameBuffer, addStartCode(nalData)...)
 					case 1: // non-IDR slice
 						frameBuffer = append(frameBuffer, addStartCode(nalData)...)
-					case 9: // AUD - Access Unit Delimiter (koniec ramki)
+					case 9: // AUD - Access Unit Delimiter
 						flushFrame()
-					default: // Inne typy NAL units (np. SEI)
+					default:
 						frameBuffer = append(frameBuffer, addStartCode(nalData)...)
 					}
 				}
 
-				// Zostaw fragment po ostatnim NAL unit w buferze
 				if lastNALStart >= 0 {
 					buffer = buffer[lastNALStart:]
 				} else {

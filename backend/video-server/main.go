@@ -20,9 +20,9 @@ func main() {
 	camera.StartCameraServers(config)
 	network.SetupMainAPIServer()
 
-	fmt.Println("🎥 System kamer WebRTC uruchomiony!")
-	fmt.Printf("📡 Główne API dostępne na porcie %d\n", structs.BasePort-1)
-	fmt.Println("📡 Wykryte kamery:")
+	fmt.Println("++V1VID++")
+	fmt.Printf("MAIN api on port %d\n", structs.BasePort-1)
+	fmt.Println("[DEVICE] Detected Cameras:")
 	camera.ListAvailableCameras()
 	select {}
 }

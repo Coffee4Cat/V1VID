@@ -28,9 +28,9 @@ func SetupMainAPIServer() {
 	}
 
 	go func() {
-		log.Printf("🌐 Uruchamiam główny serwer API na porcie %d", mainPort)
+		log.Printf("Main server on port %d", mainPort)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Printf("❌ Błąd głównego serwera: %v", err)
+			log.Printf("[ERROR] Main server failure: %v", err)
 		}
 	}()
 }
@@ -45,7 +45,7 @@ func HandleStartSpecificCamera(w http.ResponseWriter, r *http.Request, camera *s
 
 	resp := structs.CameraStatusResponse{Status: true, CameraNum: 1}
 	json.NewEncoder(w).Encode(resp)
-	log.Printf("✅ Uruchomiono kamerę %s", camera.ID)
+	log.Printf("[DEVICE] Initialized Camera: %s", camera.ID)
 }
 
 func HandleStopSpecificCamera(w http.ResponseWriter, r *http.Request, camera *structs.Camera) {
@@ -61,7 +61,7 @@ func HandleStopSpecificCamera(w http.ResponseWriter, r *http.Request, camera *st
 
 	resp := structs.CameraStatusResponse{Status: false, CameraNum: 1}
 	json.NewEncoder(w).Encode(resp)
-	log.Printf("⏹️ Zatrzymano kamerę %s", camera.ID)
+	log.Printf("[DEVICE] Camera Stopped: %s", camera.ID)
 }
 
 func HandleIndorQualitySpecificCamera(w http.ResponseWriter, r *http.Request) {
@@ -75,7 +75,7 @@ func HandleIndorQualitySpecificCamera(w http.ResponseWriter, r *http.Request) {
 
 	resp := structs.CameraStatusResponse{Status: true, CameraNum: 1}
 	json.NewEncoder(w).Encode(resp)
-	log.Printf("Kamera %s ustawiona w trybie INDOR", camera.ID)
+	log.Printf("[MODE] Camera %s in INDOR Mode", camera.ID)
 }
 
 func HandleCloudyQualitySpecificCamera(w http.ResponseWriter, r *http.Request) {
@@ -89,7 +89,7 @@ func HandleCloudyQualitySpecificCamera(w http.ResponseWriter, r *http.Request) {
 
 	resp := structs.CameraStatusResponse{Status: true, CameraNum: 1}
 	json.NewEncoder(w).Encode(resp)
-	log.Printf("Kamera %s ustawiona w trybie CLOUDY", camera.ID)
+	log.Printf("[MODE] Camera %s in CLOUDY Mode", camera.ID)
 }
 
 func HandleSunnyQualitySpecificCamera(w http.ResponseWriter, r *http.Request) {
@@ -103,7 +103,7 @@ func HandleSunnyQualitySpecificCamera(w http.ResponseWriter, r *http.Request) {
 
 	resp := structs.CameraStatusResponse{Status: true, CameraNum: 1}
 	json.NewEncoder(w).Encode(resp)
-	log.Printf("Kamera %s ustawiona w trybie SUNNY", camera.ID)
+	log.Printf("[MODE] Camera %s in SUNNY Mode", camera.ID)
 }
 
 func HandleCameraStatus(w http.ResponseWriter, r *http.Request, camera *structs.Camera) {
@@ -155,7 +155,7 @@ func HandleStartCamera(w http.ResponseWriter, r *http.Request) {
 	structs.Manager.MMutex.RUnlock()
 
 	if !exists {
-		http.Error(w, "Kamera nie znaleziona", http.StatusNotFound)
+		http.Error(w, "[ERROR] Camera not detected", http.StatusNotFound)
 		return
 	}
 
@@ -166,7 +166,7 @@ func HandleStartCamera(w http.ResponseWriter, r *http.Request) {
 
 	resp := structs.CameraStatusResponse{Status: true, CameraNum: 1}
 	json.NewEncoder(w).Encode(resp)
-	log.Printf("✅ Uruchomiono kamerę %s", cameraID)
+	log.Printf("[DEVICE] Initialized Camera: %s", cameraID)
 }
 
 func HandleStopCamera(w http.ResponseWriter, r *http.Request) {
@@ -178,7 +178,7 @@ func HandleStopCamera(w http.ResponseWriter, r *http.Request) {
 	structs.Manager.MMutex.RUnlock()
 
 	if !exists {
-		http.Error(w, "Kamera nie znaleziona", http.StatusNotFound)
+		http.Error(w, "[ERROR] Camera not detected", http.StatusNotFound)
 		return
 	}
 
@@ -192,5 +192,5 @@ func HandleStopCamera(w http.ResponseWriter, r *http.Request) {
 
 	resp := structs.CameraStatusResponse{Status: false, CameraNum: 1}
 	json.NewEncoder(w).Encode(resp)
-	log.Printf("⏹️ Zatrzymano kamerę %s", cameraID)
+	log.Printf("[DEVICE] Camera Stpped: %s", cameraID)
 }

@@ -17,6 +17,7 @@ import (
 func detectCameras() []string {
 	var cameras []string
 
+	// search hardcoded for now - needs automation
 	for i := 0; i < 25; i++ {
 		// if i == 0 || i == 2 || i == 6 || i == 10 || i == 14 || i == 18 || i == 22 {
 		if i == 2 || i == 6 || i == 10 || i == 14 || i == 18 {
@@ -33,17 +34,15 @@ func detectCameras() []string {
 func createNamedPipe(cameraID string) (string, error) {
 	pipeDir := "/tmp/camera_pipes"
 	if err := os.MkdirAll(pipeDir, 0755); err != nil {
-		return "", fmt.Errorf("błąd tworzenia katalogu pipes: %v", err)
+		return "", fmt.Errorf("Couldn't create pipe: %v", err)
 	}
 
 	pipePath := filepath.Join(pipeDir, fmt.Sprintf("camera_%s.pipe", cameraID))
 
-	// Usuń pipe jeśli już istnieje
 	os.Remove(pipePath)
 
-	// Utwórz named pipe
 	if err := syscall.Mkfifo(pipePath, 0644); err != nil {
-		return "", fmt.Errorf("błąd tworzenia named pipe: %v", err)
+		return "", fmt.Errorf("Could'nt create pipe: %v", err)
 	}
 
 	return pipePath, nil
@@ -70,7 +69,7 @@ func InitializeCameras() {
 		structs.Manager.Cameras[cameraID] = camera
 		structs.Manager.MMutex.Unlock()
 
-		log.Printf("✅ Zarejestrowano kamerę: %s (urządzenie: %s, port: %d, pipepath: %s)", cameraID, device, port, pipepath)
+		log.Printf("[DEVICE REGISTERED]: %s (dev: %s, port: %d, pipepath: %s)", cameraID, device, port, pipepath)
 	}
 }
 
@@ -116,10 +115,10 @@ func startCameraServer(camera *structs.Camera, config webrtc.Configuration) {
 	camera.Server = server
 	camera.MMutex.Unlock()
 
-	log.Printf("🚀 Uruchamiam serwer dla kamery %s na porcie %d", camera.ID, camera.Port)
+	log.Printf("[LAUNCH] Server for camera %s on port %d", camera.ID, camera.Port)
 
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		log.Printf("❌ Błąd serwera kamery %s: %v", camera.ID, err)
+		log.Printf("[ERROR] %s: %v", camera.ID, err)
 	}
 }
 func StartCameraServers(config webrtc.Configuration) {
@@ -136,11 +135,11 @@ func ListAvailableCameras() {
 	defer structs.Manager.MMutex.RUnlock()
 
 	if len(structs.Manager.Cameras) == 0 {
-		fmt.Println("❌ Nie znaleziono kamer")
+		fmt.Println("[ERROR] Cameras not detected")
 		return
 	}
 
 	for _, camera := range structs.Manager.Cameras {
-		fmt.Printf("   📷 %s -> %s (port: %d)\n", camera.ID, camera.Device, camera.Port)
+		fmt.Printf("[DEVICE] %s -> %s (port: %d)\n", camera.ID, camera.Device, camera.Port)
 	}
 }

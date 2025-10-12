@@ -51,7 +51,7 @@ func (s *SafeWebSocketConn) WritePump() {
 		case message := <-s.SendChan:
 			s.Conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
 			if err := s.Conn.WriteJSON(message); err != nil {
-				log.Printf("❌ Błąd wysyłania wiadomości WebSocket: %v", err)
+				log.Printf("[ERROR] Websocket failure: %v", err)
 				return
 			}
 
@@ -74,7 +74,6 @@ func (s *SafeWebSocketConn) SendMessage(msg SignalingMessage) error {
 	case <-s.Done:
 		return nil
 	default:
-		log.Printf("⚠️ Send buffer pełny, pomijam wiadomość")
 		return nil
 	}
 }
