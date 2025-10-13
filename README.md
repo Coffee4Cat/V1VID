@@ -23,7 +23,7 @@ The system is designed to stream remote camera feed with minimal latency and CPU
 6. Choose *Video Mode*
 7. Assign camera to monitor, and start receiving the stream.
 <p align="center">
-  <img src="./readme-photos/livestream.png" alt="Screenshot" width="700">
+  <img src="./readme-photos/live.png" alt="Screenshot" width="700">
 </p>
 
 
