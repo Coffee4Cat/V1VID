@@ -17,8 +17,18 @@ The system is designed to stream remote camera feed with minimal latency and CPU
 ### How to use it
 1. Plug your usb cameras to the server
 2. Put their */dev/video* ID into **camera.go** (TODO: Automation)
-3. Start the backend server and serve the frontend.
+3. Start the backend server and serve the frontend
 4. If works, the control diode on the home page should be colorfull (gray = not connected) 
+5. Initialize cameras listed in *Camera Status*
+6. Choose *Video Mode*
+7. Assign camera to monitor, and start receiving the stream.
+<p align="center">
+  <img src="./readme-photos/livestream.png" alt="Screenshot" width="700">
+</p>
+
+
+
+
 
 ### Task List
 - **General**
