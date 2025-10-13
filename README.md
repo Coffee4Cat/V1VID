@@ -24,15 +24,15 @@ The system is designed to stream remote camera feed with minimal latency and CPU
 - **General**
     - [x] functional video server (backend)
     - [x] functional stream receiver (frontend)
-    - [] automated device detection and naming
+    - [ ] automated device detection and naming
     - [x] support for h264 devices
-    - [] support for mjpeg devices
+    - [ ] support for mjpeg devices
 
 - **Stream**
-    - [] manual video resolution adjustment 
+    - [ ] manual video resolution adjustment 
     - [x] manual video parameter adjustment for lower-latency of hardware encoded h264 stream (Indor, Sunny, Cloudy)
 - **Telemetry**
-    - [] CPU usage telemetry (for mjpeg support)
+    - [ ] CPU usage telemetry (for mjpeg support)
 
 
 
