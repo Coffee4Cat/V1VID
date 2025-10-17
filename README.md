@@ -55,6 +55,7 @@ This project is licensed under the [MIT License](./LICENSE).
 This software includes open-source components:
 - [pion/webrtc](https://github.com/pion/webrtc) — MIT License  
 - [gorilla/websocket](https://github.com/gorilla/websocket) — BSD 2-Clause License
+- [gstreamer](https://github.com/GStreamer/gstreamer) - LGPL-2.1
 
 All third-party libraries retain their original licenses and copyright notices.
 
