@@ -36,7 +36,7 @@ The system is designed to stream remote camera feed with minimal latency and CPU
     - [x] functional stream receiver (frontend)
     - [ ] automated device detection and naming
     - [x] support for h264 devices
-    - [ ] support for mjpeg devices
+    - [x] support for mjpeg devices
 
 - **Stream**
     - [ ] manual video resolution adjustment 

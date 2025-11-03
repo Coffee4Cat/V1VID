@@ -29,13 +29,26 @@
   padding: 0.5em 1.2em;
   border-radius: 8px;
   border: none;
-  background: linear-gradient(to bottom, #fbf16a, #1229fd);
+  background: linear-gradient(to bottom, #fbf16a, #a6f150);
   color: #272728;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.0s;
 }
 .button_active3:hover {
+  background: #fea143;
+}
+.button_active4 {
+  padding: 0.5em 1.2em;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(to bottom, #fbf16a, #086ba1);
+  color: #272728;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.0s;
+}
+.button_active4:hover {
   background: #fea143;
 }
 .button_inactive1 {
@@ -73,7 +86,7 @@
   border-style: solid;
   border-width: 5px;
   border-radius: 20px;
-  border-color: #1229fd;
+  border-color: #a6f150;
   background: #272728;
   color: #FFF;
   font-weight: 600;
@@ -83,7 +96,21 @@
 .button_inactive3:hover {
   background: #272728;
 }
-
+.button_inactive4 {
+  padding: 0.5em 1.2em;
+  border-style: solid;
+  border-width: 5px;
+  border-radius: 20px;
+  border-color: #086ba1;
+  background: #272728;
+  color: #FFF;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.button_inactive4:hover {
+  background: #272728;
+}
 .camera_list {
   display: flex;
   overflow-y: auto;

@@ -12,16 +12,19 @@ function CameraActivator({text, address, camera_id, entry_status, entry_quality}
             1: styles.enabledquality1,
             2: styles.enabledquality2,
             3: styles.enabledquality3,
+            4: styles.enabledquality4,
         },
         disabled: {
             1: styles.disabledquality1,
             2: styles.disabledquality2,
             3: styles.disabledquality3,
+            4: styles.disabledquality4,
         },
         title: {
-            1: "INDOR",
-            2: "CLOUDY",
-            3: "SUNNY",
+            1: "x264 - INDOR",
+            2: "x264 - CLOUDY",
+            3: "x264 - SUNNY",
+            4: "mjpg - DEFAULT",
         },
     };
     
@@ -77,6 +80,16 @@ function CameraActivator({text, address, camera_id, entry_status, entry_quality}
             setQuality(3);
         } catch (error) {}
     };
+
+    const handleMjpgQuality = async () => {
+        try {
+            let addr;
+            addr = address + "/mjpgquality/" + camera_id;
+            const response = await fetch(addr, {method: "POST"});
+            const data = await response.json();
+            setQuality(4);
+        } catch (error) {}
+    };
     
     
     
@@ -84,11 +97,12 @@ function CameraActivator({text, address, camera_id, entry_status, entry_quality}
         <div className={`${styles.controlblock} ${enable ? qualityMap.enabled[quality] : qualityMap.disabled[quality]}`}>
             <p>{text}</p>
             <button className={styles.button} onClick={handleClick}>{enable ? "TURN OFF" : "TURN ON"}</button>
-            <p>MODE {qualityMap.title[quality]}</p>
+            <p>{qualityMap.title[quality]}</p>
             <ul className={styles.modelist}>
-                <li><button className={styles.qbutton1} onClick={handleIndorQuality}>INDOR</button></li>
-                <li><button className={styles.qbutton2} onClick={handleCloudyQuality}>CLOUDY</button></li>
-                <li><button className={styles.qbutton3} onClick={handleSunnyQuality}>SUNNY</button></li>
+                <li><button className={styles.qbutton1} onClick={handleIndorQuality}>indor</button></li>
+                <li><button className={styles.qbutton2} onClick={handleCloudyQuality}>cloudy</button></li>
+                <li><button className={styles.qbutton3} onClick={handleSunnyQuality}>sunny</button></li>
+                <li><button className={styles.qbutton4} onClick={handleMjpgQuality}>MJPG</button></li>
             </ul>
         </div>
     );

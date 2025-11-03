@@ -18,6 +18,7 @@ func SetupMainAPIServer() {
 	mux.HandleFunc("/api/camera/indorquality/", HandleIndorQualitySpecificCamera)
 	mux.HandleFunc("/api/camera/cloudyquality/", HandleCloudyQualitySpecificCamera)
 	mux.HandleFunc("/api/camera/sunnyquality/", HandleSunnyQualitySpecificCamera)
+	mux.HandleFunc("/api/camera/mjpgquality/", HandleMjpgQualitySpecificCamera)
 
 	mux.Handle("/", http.FileServer(http.Dir("./static/")))
 
@@ -105,6 +106,21 @@ func HandleSunnyQualitySpecificCamera(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 	log.Printf("[MODE] Camera %s in SUNNY Mode", camera.ID)
 }
+
+func HandleMjpgQualitySpecificCamera(w http.ResponseWriter, r *http.Request) {
+	structs.SetCORSHeaders(w)
+	cameraID := r.URL.Path[len("/api/camera/mjpgquality/"):]
+	structs.Manager.MMutex.RLock()
+	camera, _ := structs.Manager.Cameras[cameraID]
+	camera.Quality = 4
+	BuildV4L2Command(camera.Device, camera.Quality)
+	structs.Manager.MMutex.RUnlock()
+
+	resp := structs.CameraStatusResponse{Status: true, CameraNum: 1}
+	json.NewEncoder(w).Encode(resp)
+	log.Printf("[MODE] Camera %s in MJPG Mode", camera.ID)
+}
+
 
 func HandleCameraStatus(w http.ResponseWriter, r *http.Request, camera *structs.Camera) {
 	structs.SetCORSHeaders(w)

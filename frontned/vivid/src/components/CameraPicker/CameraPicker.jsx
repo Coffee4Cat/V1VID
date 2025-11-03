@@ -10,17 +10,18 @@ const CameraPicker = ({title, cameras, setCamport, setCamname}) => {
         enabled: {
             1: styles.button_active1,
             2: styles.button_active2,
-            3: styles.button_active2,
+            3: styles.button_active3,
+            4: styles.button_active4,
         },
         disabled: {
             1: styles.button_inactive1,
             2: styles.button_inactive2,
             3: styles.button_inactive3,
+            4: styles.button_inactive4,
         },
     };
 
 
-        // <div className={`${styles.controlblock} ${enable ? qualityMap.enabled[quality] : qualityMap.disabled[quality]}`}></div>
     return (
         <div className={styles.container}>
             <div className={styles.title}>

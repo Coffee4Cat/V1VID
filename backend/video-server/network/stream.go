@@ -48,59 +48,65 @@ func BuildV4L2Command(device string, mode int) {
 func BuildFFmpegCommand(device string, mode int) *exec.Cmd {
 	var args []string
 	// 800x600 OR 1280x720
+	fmt.Printf("%d\n", mode);
 	switch mode {
-	case 1: // INDOR
+	case 4: // MJPEG
 		args = []string{
-			"v4l2src", "device=" + device,
+            "v4l2src", "device=" + device,
 			"do-timestamp=true",
-			"io-mode=2",
-			"!", "video/x-h264,width=1280,height=720,framerate=30/1",
-			"!", "h264parse",
-			"config-interval=1",
-			"disable-passthrough=true",
-			"!", "queue",
-			"max-size-time=33333333",
-			"leaky=upstream",
-			"!", "filesink", "location=/dev/stdout",
-			"sync=false",
-			"async=false",
-			"buffer-mode=unbuffered",
-		}
-	case 2: // SUNNY
-		args = []string{
-			"v4l2src", "device=" + device,
-			"do-timestamp=true",
-			"io-mode=2",
-			"!", "video/x-h264,width=1280,height=720,framerate=30/1",
-			"!", "h264parse",
-			"config-interval=1",
-			"disable-passthrough=true",
-			"!", "queue",
-			"max-size-time=33333333",
-			"leaky=upstream",
-			"!", "filesink", "location=/dev/stdout",
-			"sync=false",
-			"async=false",
-			"buffer-mode=unbuffered",
-		}
-
-	case 3:
-		args = []string{
-			"v4l2src", "device=" + device,
-			"!", "image/jpeg,framerate=30/1,width=1280,height=720",
+			"!", "image/jpeg,width=1280,height=720,framerate=30/1",
 			"!", "jpegdec",
 			"!", "videoconvert",
+			"!", "video/x-raw,format=I420",
+			"!", "queue",
+			"max-size-buffers=3",
+			"max-size-time=0",
+			"max-size-bytes=0",
+			"leaky=downstream",
 			"!", "x264enc",
 			"tune=zerolatency",
+			"speed-preset=ultrafast",
 			"bitrate=4000",
-			"speed-preset=fast",
 			"key-int-max=30",
-			"!", "video/x-h264,profile=baseline",
+			"bframes=0",
+			"aud=true",
+			"sliced-threads=false",
+			"sync-lookahead=0",
+			"rc-lookahead=0",
+			"vbv-buf-capacity=120",
+			"threads=1",
+			"!", "video/x-h264,profile=baseline,stream-format=byte-stream",
 			"!", "h264parse",
+			"config-interval=1",
+			"!", "queue",
+			"max-size-buffers=2",
+			"leaky=downstream",
 			"!", "filesink", "location=/dev/stdout",
+			"sync=false",
+			"async=false",
+			"buffer-mode=unbuffered",
+			"blocksize=4096",
+        }
+	default: // x264
+		args = []string{
+			"v4l2src", "device=" + device,
+			"do-timestamp=true",
+			"io-mode=2",
+			"!", "video/x-h264,width=1280,height=720,framerate=30/1",
+			"!", "h264parse",
+			"config-interval=1",
+			"disable-passthrough=true",
+			"!", "queue",
+			"max-size-time=33333333",
+			"leaky=upstream",
+			"!", "filesink", "location=/dev/stdout",
+			"sync=false",
+			"async=false",
+			"buffer-mode=unbuffered",
 		}
 
 	}
+
 
 	return exec.Command("gst-launch-1.0", args...)
 
@@ -263,8 +269,6 @@ func StartCameraStream(camera *structs.Camera) error {
 	if err := ffmpegCmd.Start(); err != nil {
 		return fmt.Errorf("[ERROR] GSTREAMER failure: %v", err)
 	}
-	time.Sleep(10000 * time.Millisecond)
-	// BuildV4L2Command(camera.Device, camera.Quality)
 
 	camera.FFmpeg = ffmpegCmd
 	camera.IsActive = true
@@ -281,11 +285,12 @@ func StartCameraStream(camera *structs.Camera) error {
 
 		log.Printf("[STREAM] Camera %s", camera.ID)
 
+
 		var sps []byte
 		var pps []byte
 		var frameBuffer []byte
 		var currentIsIDR bool
-		buffer := make([]byte, 0, 64*1024)
+		buffer := make([]byte, 0, 16*1024)
 
 		flushFrame := func() {
 			if len(frameBuffer) == 0 {
@@ -315,7 +320,7 @@ func StartCameraStream(camera *structs.Camera) error {
 			currentIsIDR = false
 		}
 
-		readBuffer := make([]byte, 4096)
+		readBuffer := make([]byte, 2048)
 		for {
 			n, err := stdout.Read(readBuffer)
 			if err != nil {
