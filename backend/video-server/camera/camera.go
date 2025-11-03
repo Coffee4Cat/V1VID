@@ -20,7 +20,7 @@ func detectCameras() []string {
 	// search hardcoded for now - needs automation
 	// camera id here
 	for i := 0; i < 25; i++ {
-		if i == 2 || i == 6 || i == 10 || i == 14 || i == 18 {
+		if i == 0 || i == 6 || i == 10 || i == 14 || i == 18 {
 			device := fmt.Sprintf("/dev/video%d", i)
 			if exec.Command("ls", device).Run() == nil {
 				cameras = append(cameras, device)

@@ -66,7 +66,7 @@ func BuildFFmpegCommand(device string, mode int) *exec.Cmd {
 			"async=false",
 			"buffer-mode=unbuffered",
 		}
-	case 2: // CLOUDY
+	case 2: // SUNNY
 		args = []string{
 			"v4l2src", "device=" + device,
 			"do-timestamp=true",
@@ -83,22 +83,21 @@ func BuildFFmpegCommand(device string, mode int) *exec.Cmd {
 			"async=false",
 			"buffer-mode=unbuffered",
 		}
-	case 3: // SUNNY
+
+	case 3:
 		args = []string{
 			"v4l2src", "device=" + device,
-			"do-timestamp=true",
-			"io-mode=2",
-			"!", "video/x-h264,width=1280,height=720,framerate=30/1",
+			"!", "image/jpeg,framerate=30/1,width=1280,height=720",
+			"!", "jpegdec",
+			"!", "videoconvert",
+			"!", "x264enc",
+			"tune=zerolatency",
+			"bitrate=4000",
+			"speed-preset=fast",
+			"key-int-max=30",
+			"!", "video/x-h264,profile=baseline",
 			"!", "h264parse",
-			"config-interval=1",
-			"disable-passthrough=true",
-			"!", "queue",
-			"max-size-time=33333333",
-			"leaky=upstream",
 			"!", "filesink", "location=/dev/stdout",
-			"sync=false",
-			"async=false",
-			"buffer-mode=unbuffered",
 		}
 
 	}
