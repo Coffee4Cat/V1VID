@@ -8,6 +8,10 @@ import (
 	"github.com/pion/webrtc/v3"
 )
 
+// Dodać structure związany z Devicem
+// będzie on miał EveryDevice, MJPGDevice, H264Device
+// A Camera będzie miała CurrentDevice (string) oraz currentMode(const enum)
+
 type Camera struct {
 	ID       string
 	Device   string
