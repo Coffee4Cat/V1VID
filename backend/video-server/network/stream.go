@@ -48,13 +48,15 @@ func BuildV4L2Command(device string, mode int) {
 func BuildFFmpegCommand(device string, mode int) *exec.Cmd {
 	var args []string
 	// 800x600 OR 1280x720
-	fmt.Printf("%d\n", mode);
+	// It will be required to create "pick-quality"
+	fmt.Printf("%d\n", mode)
+
 	switch mode {
 	case 4: // MJPEG
 		args = []string{
-            "v4l2src", "device=" + device,
+			"v4l2src", "device=" + device,
 			"do-timestamp=true",
-			"!", "image/jpeg,width=1280,height=720,framerate=30/1",
+			"!", "image/jpeg,width=640,height=480,framerate=30/1",
 			"!", "jpegdec",
 			"!", "videoconvert",
 			"!", "video/x-raw,format=I420",
@@ -86,7 +88,7 @@ func BuildFFmpegCommand(device string, mode int) *exec.Cmd {
 			"async=false",
 			"buffer-mode=unbuffered",
 			"blocksize=4096",
-        }
+		}
 	default: // x264
 		args = []string{
 			"v4l2src", "device=" + device,
@@ -106,7 +108,6 @@ func BuildFFmpegCommand(device string, mode int) *exec.Cmd {
 		}
 
 	}
-
 
 	return exec.Command("gst-launch-1.0", args...)
 
@@ -259,7 +260,7 @@ func StartCameraStream(camera *structs.Camera) error {
 	}
 	camera.Track = h264Track
 
-	ffmpegCmd := BuildFFmpegCommand(camera.Device, camera.Quality)
+	ffmpegCmd := BuildFFmpegCommand(camera.CurrentDevice, camera.Quality)
 
 	stdout, err := ffmpegCmd.StdoutPipe()
 	if err != nil {
@@ -284,7 +285,6 @@ func StartCameraStream(camera *structs.Camera) error {
 		}()
 
 		log.Printf("[STREAM] Camera %s", camera.ID)
-
 
 		var sps []byte
 		var pps []byte

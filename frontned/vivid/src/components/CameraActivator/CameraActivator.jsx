@@ -57,7 +57,10 @@ function CameraActivator({text, address, camera_id, entry_status, entry_quality}
             addr = address + "/indorquality/" + camera_id;
             const response = await fetch(addr, {method: "POST"});
             const data = await response.json();
-            setQuality(1);
+            const status = data.status
+            if (status){
+                setQuality(1);
+            }
         } catch (error) {}
     };
     
@@ -67,7 +70,10 @@ function CameraActivator({text, address, camera_id, entry_status, entry_quality}
             addr = address + "/cloudyquality/" + camera_id;
             const response = await fetch(addr, {method: "POST"});
             const data = await response.json();
-            setQuality(2);
+            const status = data.status
+            if (status){
+                setQuality(2);
+            }
         } catch (error) {}
     };
 
@@ -77,7 +83,10 @@ function CameraActivator({text, address, camera_id, entry_status, entry_quality}
             addr = address + "/sunnyquality/" + camera_id;
             const response = await fetch(addr, {method: "POST"});
             const data = await response.json();
-            setQuality(3);
+            const status = data.status
+            if (status){
+                setQuality(3);
+            }
         } catch (error) {}
     };
 
