@@ -56,7 +56,7 @@ func BuildFFmpegCommand(device string, mode int) *exec.Cmd {
 		args = []string{
 			"v4l2src", "device=" + device,
 			"do-timestamp=true",
-			"!", "image/jpeg,width=640,height=480,framerate=30/1",
+			"!", "image/jpeg,width=1024,height=576,framerate=20/1",
 			"!", "jpegdec",
 			"!", "videoconvert",
 			"!", "video/x-raw,format=I420",
