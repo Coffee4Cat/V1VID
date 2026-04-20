@@ -12,9 +12,9 @@ function VideoModes() {
             <div className={styles.title}>
                 <br/>
                 <h1>Video Modes</h1>
+            </div>
             <div className={styles.description}>
                 <p>choose the best solution for your needs</p>
-            </div>
             </div>
             <div className={styles.panel}>
                 <ul className={styles.modeselect}>

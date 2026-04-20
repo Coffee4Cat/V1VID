@@ -79,12 +79,9 @@ const StreamViewer = ({monitor, camname, camport, x_size, y_size}) => {
 
     return (
     <div className={styles.wrapper}>
-        {/* <h2>{monitor}</h2> */}
         {!started ? (
         <button onClick={startCamera}>Start Watching <strong>{camname}</strong></button>
-        ) : (
-        <button onClick={stopCamera}>Stop Watching <strong>{camname}</strong></button>
-        )}
+        ) : null}
         <div className={styles.container}>
         <video ref={videoRef} autoPlay playsInline muted width={x_size} height={y_size} />
         </div>

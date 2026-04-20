@@ -9,10 +9,11 @@ function ModeRedirector({name, link}) {
 
 
     return(
-        <div className={styles.wrapper}>
-            <p>{name}</p>
-            <Link to={link}>[CLICK ME]</Link>
-        </div>
+        <Link to={link} className={styles.wrapper}>
+            <div>
+                <p>{name}</p>
+            </div>
+        </Link>
     );
 };
 

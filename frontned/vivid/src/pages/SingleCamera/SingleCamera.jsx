@@ -9,6 +9,8 @@ const SingleCamera = () => {
   const [camname, setCamname] = useState("camera_0")
   const [cameras, setCameras] = useState([]);
 
+  const oneVW = window.innerWidth * 0.9;
+
   useEffect(() => {
     const fetchCameras = async () => {
       try {
@@ -26,9 +28,10 @@ const SingleCamera = () => {
 
   return (
     <div className={styles.wrapper}>
+      <br/><br/><br/><br/><br/>
       <h2>SINGLE CAMERA VIEW</h2>
       <CameraPicker title="1" cameras={cameras} setCamport={setCamport} setCamname={setCamname} />
-      <StreamViewer camname={camname} camport={camport} x_size={1600} y_size={1000} />
+      <StreamViewer camname={camname} camport={camport} x_size={oneVW} y_size={1000} />
     </div>
   );
 };
