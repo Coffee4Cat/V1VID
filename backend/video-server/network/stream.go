@@ -42,13 +42,10 @@ func BuildV4L2Command(device string, mode int) {
 		time.Sleep(2200 * time.Millisecond)
 		exec.Command("v4l2-ctl", "-d", device, "-c", "white_balance_absolute=8000").Run()
 	}
-
 }
 
 func BuildFFmpegCommand(device string, mode int) *exec.Cmd {
 	var args []string
-	// 800x600 OR 1280x720
-	// It will be required to create "pick-quality"
 	fmt.Printf("%d\n", mode)
 
 	switch mode {
@@ -64,7 +61,7 @@ func BuildFFmpegCommand(device string, mode int) *exec.Cmd {
 			"max-size-buffers=3",
 			"max-size-time=0",
 			"max-size-bytes=0",
-			"leaky=downstream",
+			"leaky=upstream",
 			"!", "x264enc",
 			"tune=zerolatency",
 			"speed-preset=ultrafast",
@@ -82,7 +79,7 @@ func BuildFFmpegCommand(device string, mode int) *exec.Cmd {
 			"config-interval=1",
 			"!", "queue",
 			"max-size-buffers=2",
-			"leaky=downstream",
+			"leaky=upstream",
 			"!", "filesink", "location=/dev/stdout",
 			"sync=false",
 			"async=false",
@@ -106,11 +103,9 @@ func BuildFFmpegCommand(device string, mode int) *exec.Cmd {
 			"async=false",
 			"buffer-mode=unbuffered",
 		}
-
 	}
 
 	return exec.Command("gst-launch-1.0", args...)
-
 }
 
 func HandleCameraWebSocket(w http.ResponseWriter, r *http.Request, camera *structs.Camera, config webrtc.Configuration) {
@@ -212,35 +207,48 @@ func addStartCode(nal []byte) []byte {
 
 func findNALUnits(data []byte) [][]byte {
 	var nalUnits [][]byte
-	start := 0
+	var starts []int
 
-	for i := 0; i < len(data)-3; i++ {
-		//start code: 0x00 0x00 0x00 0x01 lub 0x00 0x00 0x01
+	i := 0
+	for i < len(data)-2 {
 		if data[i] == 0x00 && data[i+1] == 0x00 {
-			if (i+3 < len(data) && data[i+2] == 0x00 && data[i+3] == 0x01) ||
-				(data[i+2] == 0x01) {
-
-				if start < i {
-					nalUnits = append(nalUnits, data[start:i])
-				}
-
-				if data[i+2] == 0x00 && data[i+3] == 0x01 {
-					start = i + 4
-					i += 3
-				} else {
-					start = i + 3
-					i += 2
-				}
+			if i+3 < len(data) && data[i+2] == 0x00 && data[i+3] == 0x01 {
+				starts = append(starts, i+4)
+				i += 4
+				continue
+			}
+			if data[i+2] == 0x01 {
+				starts = append(starts, i+3)
+				i += 3
+				continue
 			}
 		}
+		i++
 	}
 
-	if start < len(data) {
-		nalUnits = append(nalUnits, data[start:])
+	for idx, start := range starts {
+		end := len(data)
+		if idx+1 < len(starts) {
+			end = starts[idx+1]
+			if end >= 4 && data[end-4] == 0x00 {
+				end -= 4
+			} else if end >= 3 && data[end-3] == 0x00 {
+				end -= 3
+			}
+		}
+		if start < end {
+			nalUnits = append(nalUnits, data[start:end])
+		}
 	}
 
 	return nalUnits
 }
+
+const (
+	maxFrameSize          = 512 * 1024 // 512 KB
+	maxFrameLatency       = 150 * time.Millisecond
+	fallbackFrameDuration = time.Second / 30
+)
 
 func StartCameraStream(camera *structs.Camera) error {
 	camera.MMutex.Lock()
@@ -290,15 +298,34 @@ func StartCameraStream(camera *structs.Camera) error {
 		var pps []byte
 		var frameBuffer []byte
 		var currentIsIDR bool
-		buffer := make([]byte, 0, 16*1024)
+
+		lastFrameTime := time.Now()
+		buffer := make([]byte, 0, 256*1024)
+		readBuffer := make([]byte, 65536)
 
 		flushFrame := func() {
 			if len(frameBuffer) == 0 {
 				return
 			}
 
+			now := time.Now()
+			elapsed := now.Sub(lastFrameTime)
+
+			if !currentIsIDR && elapsed > maxFrameLatency {
+				log.Printf("[DROP] Camera %s: dropping non-IDR frame, latency=%v", camera.ID, elapsed)
+				frameBuffer = nil
+				currentIsIDR = false
+				return
+			}
+
+			duration := elapsed
+			if duration < 10*time.Millisecond || duration > 200*time.Millisecond {
+				duration = fallbackFrameDuration
+			}
+			lastFrameTime = now
+
 			if currentIsIDR && sps != nil && pps != nil {
-				out := []byte{}
+				out := make([]byte, 0, len(sps)+len(pps)+len(frameBuffer)+12)
 				out = append(out, addStartCode(sps)...)
 				out = append(out, addStartCode(pps)...)
 				out = append(out, frameBuffer...)
@@ -307,7 +334,7 @@ func StartCameraStream(camera *structs.Camera) error {
 
 			sample := media.Sample{
 				Data:     frameBuffer,
-				Duration: time.Second / 30,
+				Duration: duration,
 			}
 			if err := h264Track.WriteSample(sample); err != nil {
 				if err == io.ErrClosedPipe {
@@ -320,7 +347,6 @@ func StartCameraStream(camera *structs.Camera) error {
 			currentIsIDR = false
 		}
 
-		readBuffer := make([]byte, 2048)
 		for {
 			n, err := stdout.Read(readBuffer)
 			if err != nil {
@@ -332,35 +358,59 @@ func StartCameraStream(camera *structs.Camera) error {
 
 			buffer = append(buffer, readBuffer[:n]...)
 
+			if len(buffer) > 4*maxFrameSize {
+				log.Printf("[WARN] Camera %s: work buffer overflow (%d bytes), resetting", camera.ID, len(buffer))
+				buffer = buffer[:0]
+				frameBuffer = nil
+				currentIsIDR = false
+				continue
+			}
+
 			nalUnits := findNALUnits(buffer)
 
 			if len(nalUnits) > 0 {
-				lastNALStart := bytes.LastIndex(buffer, []byte{0x00, 0x00, 0x00, 0x01})
-				if lastNALStart == -1 {
-					lastNALStart = bytes.LastIndex(buffer, []byte{0x00, 0x00, 0x01})
-				}
+				processUpTo := len(nalUnits) - 1
 
-				for _, nalData := range nalUnits[:len(nalUnits)-1] {
+				for _, nalData := range nalUnits[:processUpTo] {
 					if len(nalData) == 0 {
+						continue
+					}
+
+					if len(frameBuffer)+len(nalData)+4 > maxFrameSize {
+						log.Printf("[WARN] Camera %s: frameBuffer overflow, dropping frame", camera.ID)
+						frameBuffer = nil
+						currentIsIDR = false
 						continue
 					}
 
 					nalType := nalData[0] & 0x1F
 					switch nalType {
 					case 7: // SPS
-						sps = nalData
+						sps = make([]byte, len(nalData))
+						copy(sps, nalData)
 					case 8: // PPS
-						pps = nalData
+						pps = make([]byte, len(nalData))
+						copy(pps, nalData)
 					case 5: // IDR
+						flushFrame()
 						currentIsIDR = true
 						frameBuffer = append([]byte{}, addStartCode(nalData)...)
-						// frameBuffer = append(frameBuffer, addStartCode(nalData)...)
 					case 1: // non-IDR slice
 						frameBuffer = append(frameBuffer, addStartCode(nalData)...)
 					case 9: // AUD - Access Unit Delimiter
 						flushFrame()
 					default:
 						frameBuffer = append(frameBuffer, addStartCode(nalData)...)
+					}
+				}
+
+				lastSC4 := bytes.LastIndex(buffer, []byte{0x00, 0x00, 0x00, 0x01})
+				lastSC3 := bytes.LastIndex(buffer, []byte{0x00, 0x00, 0x01})
+
+				lastNALStart := lastSC4
+				if lastSC3 > lastSC4 {
+					if lastSC3 == 0 || buffer[lastSC3-1] != 0x00 {
+						lastNALStart = lastSC3
 					}
 				}
 
@@ -372,7 +422,6 @@ func StartCameraStream(camera *structs.Camera) error {
 			}
 		}
 
-		// Flush ostatnia ramka jeśli istnieje
 		flushFrame()
 	}()
 
