@@ -9,9 +9,49 @@
 .container {
   margin: auto;
   padding: 0;
+  position: relative; /* ← wymagane! */
+  display: inline-block;
 }
 
 button {
   margin: 0;
   padding: 8px 16px;
+}
+
+
+
+.rotateBtn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    border: 1.5px solid rgba(255, 255, 255, 0.35);
+    border-radius: 50%;
+    width: 56px;
+    height: 56px;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+    transition: background 0.2s, border-color 0.2s;
+
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+}
+
+.rotateBtn svg {
+    width: 20px;
+    height: 20px;
+}
+
+.rotateBtn:hover {
+    background: rgba(0, 0, 0, 0.8);
+    border-color: rgba(255, 255, 255, 0.7);
 }
