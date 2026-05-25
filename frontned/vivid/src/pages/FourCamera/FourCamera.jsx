@@ -8,12 +8,12 @@ import config from "../../config.js"
 const FourCamera = () => {
   const [camport1, setCamport1] = useState("8081");
   const [camname1, setCamname1] = useState("camera_0")
-  const [camport2, setCamport2] = useState("8081");
-  const [camname2, setCamname2] = useState("camera_0")
-  const [camport3, setCamport3] = useState("8081");
-  const [camname3, setCamname3] = useState("camera_0")
-  const [camport4, setCamport4] = useState("8081");
-  const [camname4, setCamname4] = useState("camera_0")
+  const [camport2, setCamport2] = useState("8082");
+  const [camname2, setCamname2] = useState("camera_1")
+  const [camport3, setCamport3] = useState("8083");
+  const [camname3, setCamname3] = useState("camera_2")
+  const [camport4, setCamport4] = useState("8084");
+  const [camname4, setCamname4] = useState("camera_3")
   const [cameras, setCameras] = useState([]);
 
   const oneVW = window.innerWidth * 0.48;

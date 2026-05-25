@@ -23,7 +23,7 @@ button {
 .rotateBtn {
     position: absolute;
     top: 50%;
-    left: 50%;
+    left: 60%;
     transform: translate(-50%, -50%);
 
     display: flex;
@@ -35,8 +35,8 @@ button {
     color: #fff;
     border: 1.5px solid rgba(255, 255, 255, 0.35);
     border-radius: 50%;
-    width: 56px;
-    height: 56px;
+    width: 96px;
+    height: 96px;
     cursor: pointer;
     backdrop-filter: blur(4px);
     transition: background 0.2s, border-color 0.2s;
@@ -54,4 +54,30 @@ button {
 .rotateBtn:hover {
     background: rgba(0, 0, 0, 0.8);
     border-color: rgba(255, 255, 255, 0.7);
+}
+
+.startStopBtn {
+  position: absolute;
+  top: 50%;
+  left: 40%;
+  transform: translate(-50%, -50%);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  border-radius: 50%;
+  width: 96px;
+  height: 96px;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  transition: background 0.2s, border-color 0.2s;
+
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
 }
