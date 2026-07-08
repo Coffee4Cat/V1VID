@@ -38,13 +38,8 @@
   overflow: hidden;
   border-right: 2px solid transparent;
   white-space: nowrap;
-  animation: typing 3s steps(50, end);
   font-family: 'Courier New', Courier, monospace;
-  font-size: 0.9em;
-}
-@keyframes typing {
-  from { width: 0 }
-  to { width: 100% }
+  font-size: 1.5em;
 }
 
 

@@ -7,15 +7,19 @@
 .title {
     position: relative;
     font-size: 2.0rem;
-    color: rgba(30, 31, 32, 1);
+    background: linear-gradient(to bottom, #fbf16a, #fa80b9);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
     opacity: 0.5;
     transform: translateY(-40px);
     animation: fade 0.5s ease-out forwards;
     transition: color 0.2s, text-shadow 0.2s;
 }
 .title:hover {
-    color: #fa80b9;
-    text-shadow: 0 2px 16px #ff0088, 0 0 4px #fa80b9;
+    background: linear-gradient(to right,  #fbf16a, #fa80b9);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 2px 16px  #fbf16a, 0 0 4px #fa80b9;
 }
 @keyframes fade {
     to {
